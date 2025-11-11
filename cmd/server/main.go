@@ -6,7 +6,6 @@ import (
 	"short-linker/internal/storage"
 )
 
-// TODO: Replace all error status codes from http.StatusBadRequest to appropriate ones.
 func main() {
 	mux := http.NewServeMux()
 

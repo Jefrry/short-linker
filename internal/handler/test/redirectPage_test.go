@@ -13,33 +13,33 @@ import (
 
 func TestRedirectPage(t *testing.T) {
 	type reqData struct {
-		method      string
+		method string
 	}
 	type respData struct {
-		statusCode  int
+		statusCode int
 	}
 
 	tests := []struct {
-		name         string
-		reqData      reqData
-		respData     respData
+		name     string
+		reqData  reqData
+		respData respData
 	}{
 		{
 			name: "Success request",
 			reqData: reqData{
-				method:      http.MethodGet,
+				method: http.MethodGet,
 			},
 			respData: respData{
-				statusCode:  http.StatusTemporaryRedirect,
+				statusCode: http.StatusTemporaryRedirect,
 			},
 		},
 		{
 			name: "Invalid method",
 			reqData: reqData{
-				method:      http.MethodPost, // Do I need to test other methods?
+				method: http.MethodPost, // Do I need to test other methods?
 			},
 			respData: respData{
-				statusCode:  http.StatusBadRequest,  // TODO: implement status code tests after fixing them in handler
+				statusCode: http.StatusBadRequest,
 			},
 		},
 	}
@@ -49,7 +49,7 @@ func TestRedirectPage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			store := storage.NewMemory()
 			store.Set(randomID, host+randomID)
-			
+
 			req := httptest.NewRequest(tt.reqData.method, "/"+randomID, nil)
 
 			w := httptest.NewRecorder()

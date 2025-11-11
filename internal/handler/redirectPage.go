@@ -14,7 +14,7 @@ func RedirectPage(w http.ResponseWriter, r *http.Request, store *storage.Memory,
 
 	url, exists := store.Get(id)
 	if !exists {
-		http.Error(w, "Link not found", http.StatusBadRequest)
+		http.Error(w, "Link not found", http.StatusNotFound)
 		return
 	}
 

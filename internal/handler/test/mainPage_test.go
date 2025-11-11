@@ -64,7 +64,33 @@ func TestMainPage(t *testing.T) {
 				body:        "http://example.com",
 			},
 			respData: respData{
-				statusCode:  http.StatusBadRequest, // TODO: implement status code tests after fixing them in handler
+				statusCode:  http.StatusMethodNotAllowed,
+				contentType: "text/plain; charset=utf-8",
+			},
+			needTestBody: false,
+		},
+		{
+			name: "Invalid content type",
+			reqData: reqData{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				body:        "http://example.com",
+			},
+			respData: respData{
+				statusCode:  http.StatusUnsupportedMediaType,
+				contentType: "text/plain; charset=utf-8",
+			},
+			needTestBody: false,
+		},
+		{
+			name: "Empty body",
+			reqData: reqData{
+				method:      http.MethodPost,
+				contentType: "text/plain",
+				body:        "",
+			},
+			respData: respData{
+				statusCode:  http.StatusBadRequest,
 				contentType: "text/plain; charset=utf-8",
 			},
 			needTestBody: false,
