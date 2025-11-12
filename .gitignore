@@ -1,0 +1,51 @@
+# Бинарные файлы Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Директории с бинарями
+/bin/
+/build/
+/dist/
+/out/
+
+# Кэш и временные файлы Go
+*.log
+*.tmp
+*.swp
+*.swo
+*.DS_Store
+
+# Go modules и зависимости (если используются)
+vendor/
+
+# IDE и редакторы
+.vscode/
+.idea/
+*.iml
+
+# Тестовое покрытие
+coverage.out
+
+# Docker артефакты
+docker-compose.override.yml
+.env
+.env.*
+*.pid
+
+# Кэш и артефакты Go
+*.prof
+*.pprof
+*.trace
+
+# OS специфичные файлы
+Thumbs.db
+.DS_Store
+
+# Конфигурационные файлы локальной среды
+config.local.yml
+config.local.json
