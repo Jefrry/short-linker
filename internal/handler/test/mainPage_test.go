@@ -1,7 +1,7 @@
 package handler_test
 
-
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -96,7 +96,7 @@ func TestMainPage(t *testing.T) {
 			needTestBody: false,
 		},
 	}
-	host := "http://localhost/"
+	host := "http://localhost:8080/"
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -109,7 +109,7 @@ func TestMainPage(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			handler.MainPage(w, req, store)
+			handler.MainPage(w, req, store, host)
 
 			resp := w.Result()
 			defer resp.Body.Close()

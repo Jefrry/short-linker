@@ -1,17 +1,16 @@
 package handler
 
 import (
-	"fmt"
 	"io"
 	"mime"
 	"net/http"
-	
+	"strings"
+
 	"short-linker/internal/storage"
 	"short-linker/pkg"
 )
 
-
-func MainPage(w http.ResponseWriter, r *http.Request, store *storage.Memory) {
+func MainPage(w http.ResponseWriter, r *http.Request, store *storage.Memory, baseHost string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -22,7 +21,7 @@ func MainPage(w http.ResponseWriter, r *http.Request, store *storage.Memory) {
 		http.Error(w, "Unsupported Media Type", http.StatusUnsupportedMediaType)
 		return
 	}
-	
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
@@ -33,7 +32,6 @@ func MainPage(w http.ResponseWriter, r *http.Request, store *storage.Memory) {
 		http.Error(w, "empty body", http.StatusBadRequest)
 		return
 	}
-
 
 	var id string
 	for {
@@ -53,7 +51,7 @@ func MainPage(w http.ResponseWriter, r *http.Request, store *storage.Memory) {
 		}
 	}
 
-	shortLink := fmt.Sprintf("http://%s/%s", r.Host, id)
+	shortLink := strings.TrimRight(baseHost, "/") + "/" + id
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)

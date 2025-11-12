@@ -45,6 +45,7 @@ func TestRedirectPage(t *testing.T) {
 	}
 	randomID := "abc123"
 	host := "http://localhost/"
+	
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := storage.NewMemory()
