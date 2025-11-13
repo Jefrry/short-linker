@@ -7,7 +7,7 @@ type Flags struct {
 	BaseShortURL string
 }
 
-func ParseFlags() *Flags {
+func parseFlags() *Flags {
 	address := flag.String("a", "localhost:8080", "Server address and port")
 	baseShortURL := flag.String("b", "http://localhost:8080", "Base URL for shortened links")
 

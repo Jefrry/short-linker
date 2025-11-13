@@ -7,7 +7,7 @@ type Envs struct {
 	BaseShortURL string `env:"BASE_URL"`
 }
 
-func ParseEnvs() *Envs {
+func parseEnvs() *Envs {
 	var cfg Envs
 	err := env.Parse(&cfg)
 	if err != nil {

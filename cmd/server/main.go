@@ -3,40 +3,26 @@ package main
 import (
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-
 	"short-linker/internal/config"
 	"short-linker/internal/handler"
+	"short-linker/internal/repository"
+	"short-linker/internal/router"
+	"short-linker/internal/service"
 	"short-linker/internal/storage"
 )
 
 func main() {
-	r := chi.NewRouter()
-
-	envs := config.ParseEnvs()
-	flags := config.ParseFlags()
+	cfg := config.GetConfig()
 
 	storage := storage.NewMemory()
 
-	currentAdress := flags.Address
-	if envs.Address != "" {
-		currentAdress = envs.Address
-	}
-	currentBaseURL := flags.BaseShortURL
-	if envs.BaseShortURL != "" {
-		currentBaseURL = envs.BaseShortURL
-	}
+	linkRepo := repository.NewLinkRepository(storage)
+	linkService := service.NewLinkService(linkRepo, cfg.BaseShortURL) // Do I need to pass BaseShortURL here or in repo?
+	linkHandler := handler.NewLinkHandler(linkService)
 
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		handler.MainPage(w, r, storage, currentBaseURL)
-	})
+	r := router.NewRouter(linkHandler).SetupRoutes()
 
-	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
-		handler.RedirectPage(w, r, storage, id)
-	})
-
-	err := http.ListenAndServe(currentAdress, r)
+	err := http.ListenAndServe(cfg.Address, r)
 	if err != nil {
 		panic(err)
 	}
