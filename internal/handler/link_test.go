@@ -1,15 +1,17 @@
 package handler_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
-
 	"github.com/stretchr/testify/assert"
 
 	"short-linker/internal/handler"
+	"short-linker/internal/model"
 )
 
 // Maybe I should move it to service
@@ -54,13 +56,13 @@ func TestCreateShortLink(t *testing.T) {
 			name: "Success request",
 			reqData: reqData{
 				method:      http.MethodPost,
-				contentType: "text/plain",
+				contentType: "application/json",
 				body:        "http://example.com",
 			},
 			respData: respData{
 				body:        host + "abc",
 				statusCode:  http.StatusCreated,
-				contentType: "text/plain",
+				contentType: "application/json",
 			},
 			serviceResult: host + "abc",
 			needTestBody:  false,
@@ -69,13 +71,13 @@ func TestCreateShortLink(t *testing.T) {
 			name: "Response body check",
 			reqData: reqData{
 				method:      http.MethodPost,
-				contentType: "text/plain",
+				contentType: "application/json",
 				body:        "http://example.com",
 			},
 			respData: respData{
 				body:        "",
 				statusCode:  http.StatusCreated,
-				contentType: "text/plain",
+				contentType: "application/json",
 			},
 			serviceResult: "",
 			needTestBody:  true,
@@ -84,7 +86,7 @@ func TestCreateShortLink(t *testing.T) {
 			name: "Invalid method",
 			reqData: reqData{
 				method:      http.MethodGet,
-				contentType: "text/plain",
+				contentType: "application/json",
 				body:        "http://example.com",
 			},
 			respData: respData{
@@ -99,7 +101,7 @@ func TestCreateShortLink(t *testing.T) {
 			name: "Invalid content type",
 			reqData: reqData{
 				method:      http.MethodPost,
-				contentType: "application/json",
+				contentType: "text/plain",
 				body:        "http://example.com",
 			},
 			respData: respData{
@@ -114,7 +116,7 @@ func TestCreateShortLink(t *testing.T) {
 			name: "Empty body",
 			reqData: reqData{
 				method:      http.MethodPost,
-				contentType: "text/plain",
+				contentType: "application/json",
 				body:        "",
 			},
 			respData: respData{
@@ -128,7 +130,7 @@ func TestCreateShortLink(t *testing.T) {
 			name: "Service error",
 			reqData: reqData{
 				method:      http.MethodPost,
-				contentType: "text/plain",
+				contentType: "application/json",
 				body:        "http://example.com",
 			},
 			respData: respData{
@@ -146,7 +148,16 @@ func TestCreateShortLink(t *testing.T) {
 			linkService := &mockLinkService{createResult: tt.serviceResult, createErr: tt.serviceErr}
 			handler := handler.NewLinkHandler(linkService)
 
-			req := httptest.NewRequest(tt.reqData.method, host, strings.NewReader(tt.reqData.body))
+			var bodyReader io.Reader
+			if tt.reqData.body != "" {
+				payload := model.LinkPayload{URL: tt.reqData.body}
+				b, _ := json.Marshal(payload)
+				bodyReader = bytes.NewReader(b)
+			} else {
+				bodyReader = nil
+			}
+
+			req := httptest.NewRequest(tt.reqData.method, host, bodyReader)
 			req.Header.Set("Content-Type", tt.reqData.contentType)
 
 			w := httptest.NewRecorder()
@@ -161,7 +172,14 @@ func TestCreateShortLink(t *testing.T) {
 
 			if tt.needTestBody {
 				body := w.Body.String()
-				assert.Equal(t, body, tt.respData.body, "response body should match expected short link")
+
+				var resp model.LinkResponse
+				err := json.Unmarshal([]byte(body), &resp)
+				if err != nil {
+					t.Fatalf("failed to unmarshal response body: %v; body=%q", err, body)
+				}
+
+				assert.Equal(t, tt.respData.body, resp.ShortURL, "response body should match expected short link")
 			}
 		})
 	}

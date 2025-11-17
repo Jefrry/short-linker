@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"encoding/json"
 	"io"
 	"mime"
 	"net/http"
 
+	"short-linker/internal/model"
 	"short-linker/internal/service"
 )
 
@@ -25,7 +27,7 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ct, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if ct != "text/plain" {
+	if ct != "application/json" {
 		http.Error(w, "Unsupported Media Type", http.StatusUnsupportedMediaType)
 		return
 	}
@@ -41,15 +43,32 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortLink, err := h.service.CreateShortLink(string(body))
+	var data model.LinkPayload
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
+		return
+	}
+
+	shortLink, err := h.service.CreateShortLink(data.URL)
 	if err != nil {
 		http.Error(w, "Failed to create short link", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain")
+	res := model.LinkResponse{
+		ShortURL: shortLink,
+	}
+
+	shortLinkBytes, err := json.Marshal(res)
+	if err != nil {
+		http.Error(w, "Failed to create response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(shortLink))
+	w.Write(shortLinkBytes)
 }
 
 func (h *LinkHandler) RedirectPage(w http.ResponseWriter, r *http.Request, id string) {
