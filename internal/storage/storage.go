@@ -1,42 +1,69 @@
 package storage
 
-import "sync"
+import (
+	"hash/fnv"
+	"sync"
+)
 
-type Memory struct {
+type shard struct {
 	data map[string]string
 	mu   sync.RWMutex
 }
 
+type Memory struct {
+	shards    []*shard
+}
+
+const numShards = 8
+
 // Temp memory before db implementation
 func NewMemory() *Memory {
-	return &Memory{
-		data: make(map[string]string),
+	m := &Memory{}
+	
+	for range numShards {
+		m.shards = append(m.shards, &shard{
+			data: make(map[string]string),
+		})
 	}
+	
+	return m
+}
+
+func (m *Memory) getShard(key string) *shard {
+	hash := fnv.New32a()
+	hash.Write([]byte(key))
+	return m.shards[hash.Sum32()%numShards]
 }
 
 func (m *Memory) Get(key string) (string, bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	shard := m.getShard(key)
 
-	value, exists := m.data[key]
+	shard.mu.RLock()
+	defer shard.mu.RUnlock()
+
+	value, exists := shard.data[key]
 
 	return value, exists
 }
 
 func (m *Memory) Set(key, value string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	shard := m.getShard(key)
+	
+	shard.mu.Lock()
+	defer shard.mu.Unlock()
 
-	m.data[key] = value
+	shard.data[key] = value
 
 	return nil
 }
 
 func (m *Memory) Exists(key string) bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	shard := m.getShard(key)
 
-	_, exists := m.data[key]
+	shard.mu.RLock()
+	defer shard.mu.RUnlock()
+
+	_, exists := shard.data[key]
 
 	return exists
 }
