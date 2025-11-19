@@ -10,62 +10,77 @@ type shard struct {
 	mu   sync.RWMutex
 }
 
+func newShard() *shard {
+	return &shard{
+		data: make(map[string]string),
+	}
+}
+
 type Memory struct {
-	shards    []*shard
+	shards []*shard
 }
 
 const numShards = 8
 
-// Temp memory before db implementation
-func NewMemory() *Memory {
-	m := &Memory{}
-	
-	for range numShards {
-		m.shards = append(m.shards, &shard{
-			data: make(map[string]string),
-		})
-	}
-	
-	return m
+func (m *Memory) getShardIndex(key string) int {
+	hash := fnv.New32a()
+	_, _ = hash.Write([]byte(key))
+
+	return int(hash.Sum32() % uint32(len(m.shards)))
 }
 
-func (m *Memory) getShard(key string) *shard {
-	hash := fnv.New32a()
-	hash.Write([]byte(key))
-	return m.shards[hash.Sum32()%numShards]
+func (s *shard) Get(key string) (string, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	v, ok := s.data[key]
+	return v, ok
+}
+
+func (s *shard) Set(key, value string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.data[key] = value
+}
+
+func (s *shard) Exists(key string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	_, ok := s.data[key]
+	return ok
 }
 
 func (m *Memory) Get(key string) (string, bool) {
-	shard := m.getShard(key)
+	shardIndex := m.getShardIndex(key)
 
-	shard.mu.RLock()
-	defer shard.mu.RUnlock()
-
-	value, exists := shard.data[key]
-
-	return value, exists
+	return m.shards[shardIndex].Get(key)
 }
 
 func (m *Memory) Set(key, value string) error {
-	shard := m.getShard(key)
-	
-	shard.mu.Lock()
-	defer shard.mu.Unlock()
-
-	shard.data[key] = value
+	shardIndex := m.getShardIndex(key)
+	m.shards[shardIndex].Set(key, value)
 
 	return nil
 }
 
 func (m *Memory) Exists(key string) bool {
-	shard := m.getShard(key)
+	shardIndex := m.getShardIndex(key)
+	return m.shards[shardIndex].Exists(key)
+}
 
-	shard.mu.RLock()
-	defer shard.mu.RUnlock()
+// Temp memory before db implementation
+func NewMemory() *Memory {
+	m := &Memory{
+		shards: make([]*shard, numShards),
+	}
 
-	_, exists := shard.data[key]
+	for i := range numShards {
+		m.shards[i] = newShard()
+	}
 
-	return exists
+	return m
 }
 
 var _ Store = (*Memory)(nil)
