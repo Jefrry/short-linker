@@ -23,6 +23,8 @@ func NewRouter(linkHandler *handler.LinkHandler) *Router {
 func (r *Router) SetupRoutes(logger *zap.Logger) http.Handler {
 	router := chi.NewRouter()
 	router.Use(middleware.LoggerMiddleware(logger))
+	// I know, this is an overengineered, but I wanted to learn and practice it
+	router.Use(middleware.GzipMiddleware)
 
 	r.router = router
 

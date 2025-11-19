@@ -1,6 +1,10 @@
 package middleware
 
-import "net/http"
+import (
+	"compress/gzip"
+	"io"
+	"net/http"
+)
 
 type responseWriter struct {
 	http.ResponseWriter
@@ -8,13 +12,14 @@ type responseWriter struct {
 	size       int
 }
 
-func (rw *responseWriter) WriteHeader(code int) {
-	rw.statusCode = code
-	rw.ResponseWriter.WriteHeader(code)
+type gzipResponseWriter struct {
+	http.ResponseWriter
+	req         *http.Request
+	gz          *gzip.Writer
+	wroteHeader bool
 }
 
-func (rw *responseWriter) Write(b []byte) (int, error) {
-	size, err := rw.ResponseWriter.Write(b)
-	rw.size += size
-	return size, err
+type gzipReadCloser struct {
+	gz   *gzip.Reader
+	orig io.ReadCloser
 }
