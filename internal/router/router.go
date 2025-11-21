@@ -11,11 +11,13 @@ import (
 
 type Router struct {
 	linkHandler *handler.LinkHandler
+	pingHandler *handler.PingHandler
 	router      *chi.Mux
 }
 
-func NewRouter(linkHandler *handler.LinkHandler) *Router {
+func NewRouter(pingHandler *handler.PingHandler, linkHandler *handler.LinkHandler) *Router {
 	return &Router{
+		pingHandler: pingHandler,
 		linkHandler: linkHandler,
 	}
 }
@@ -28,6 +30,7 @@ func (r *Router) SetupRoutes(logger *zap.Logger) http.Handler {
 
 	r.router = router
 
+	r.baseRoutes()
 	r.linkRoutes()
 
 	return router

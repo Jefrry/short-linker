@@ -5,16 +5,19 @@ import "flag"
 type Flags struct {
 	Address      string
 	BaseShortURL string
+	DatabaseDsn  string
 }
 
 func parseFlags() *Flags {
 	address := flag.String("a", "localhost:8080", "Server address and port")
 	baseShortURL := flag.String("b", "http://localhost:8080", "Base URL for shortened links")
+	databaseDsn := flag.String("d", "", "Database DSN")
 
 	flag.Parse()
 
 	return &Flags{
 		Address:      *address,
 		BaseShortURL: *baseShortURL,
+		DatabaseDsn:  *databaseDsn,
 	}
 }
