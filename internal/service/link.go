@@ -27,7 +27,15 @@ func NewLinkService(repo repository.LinkRepository, baseHost string) *LinkDataSe
 
 func (s *LinkDataService) CreateShortLink(originalURL string) (string, error) {
 	var id string
+	maxRetries := 5
+	retries := 0
+	
 	for {
+		if retries >= maxRetries {
+			return "", errors.New("failed to generate unique short link after multiple attempts")
+		}
+		retries++
+
 		var err error
 		id, err = pkg.RandomStringDefault()
 		if err != nil {
