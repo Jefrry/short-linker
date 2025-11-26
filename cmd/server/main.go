@@ -42,7 +42,7 @@ func main() {
 
 	storage := storage.NewMemory()
 
-	linkRepo := repository.NewLinkRepository(storage)
+	linkRepo := repository.NewLinkRepository(storage, db)
 	linkService := service.NewLinkService(linkRepo, cfg.BaseShortURL) // Do I need to pass BaseShortURL here or in repo?
 	linkHandler := handler.NewLinkHandler(linkService)
 
