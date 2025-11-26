@@ -6,6 +6,9 @@ import (
 	"net/http"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
+	"github.com/golang-migrate/migrate/v4"
+    _ "github.com/golang-migrate/migrate/v4/database/postgres"
+    _ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"short-linker/internal/config"
 	"short-linker/internal/handler"
@@ -30,6 +33,11 @@ func main() {
 			logger.Fatal("failed to initialize database", zap.Error(err))
 		}
 		defer db.Close()
+
+		err = initMigration(cfg.DatabaseDsn)
+		if err != nil {
+			logger.Fatal("failed to run database migrations", zap.Error(err))
+		}
 	}
 
 	storage := storage.NewMemory()
@@ -58,8 +66,8 @@ func initLoger() (*zap.Logger, error) {
 	return logger, err
 }
 
-func initDB(dataSourceName string) (*sql.DB, error) {
-	db, err := sql.Open("pgx", dataSourceName)
+func initDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -70,4 +78,20 @@ func initDB(dataSourceName string) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func initMigration(dsn string) error {
+	m, err := migrate.New(
+		"file://migrations",
+		dsn)
+	if err != nil {
+		return err
+	}
+
+	err = m.Up()
+	if err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	return nil
 }
