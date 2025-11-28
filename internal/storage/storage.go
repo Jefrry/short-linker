@@ -3,16 +3,19 @@ package storage
 import (
 	"hash/fnv"
 	"sync"
+	"time"
 )
 
 type shard struct {
 	data map[string]string
+	ttl  map[string]time.Time
 	mu   sync.RWMutex
 }
 
 func newShard() *shard {
 	return &shard{
 		data: make(map[string]string),
+		ttl:  make(map[string]time.Time),
 	}
 }
 
@@ -33,15 +36,22 @@ func (s *shard) Get(key string) (string, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	if exp, ok := s.ttl[key]; ok && time.Now().After(exp) {
+			delete(s.data, key)
+			delete(s.ttl, key)
+			return "", false
+	}
+
 	v, ok := s.data[key]
 	return v, ok
 }
 
-func (s *shard) Set(key, value string) {
+func (s *shard) Set(key, value string, ttl time.Duration) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.data[key] = value
+	s.ttl[key] = time.Now().Add(ttl)
 }
 
 func (s *shard) Exists(key string) bool {
@@ -58,9 +68,14 @@ func (m *Memory) Get(key string) (string, bool) {
 	return m.shards[shardIndex].Get(key)
 }
 
-func (m *Memory) Set(key, value string) error {
+func (m *Memory) Set(key, value string, ttl time.Duration) error {
 	shardIndex := m.getShardIndex(key)
-	m.shards[shardIndex].Set(key, value)
+
+	if ttl <= 0 {
+		ttl = time.Hour * 24 * 365 * 100
+	}
+
+	m.shards[shardIndex].Set(key, value, ttl)
 
 	return nil
 }
