@@ -31,6 +31,10 @@ func (m *mockLinkService) GetOriginalURL(id string) (string, error) {
 	return m.getResult, m.getErr
 }
 
+func (m *mockLinkService) CreateShortLinkBatch(items []model.LinkBatchPayload) ([]model.LinkBatchResponse, error) {
+	return nil, nil
+}
+
 func TestCreateShortLink(t *testing.T) {
 	type reqData struct {
 		method      string

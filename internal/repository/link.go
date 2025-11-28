@@ -5,32 +5,62 @@ import (
 	"errors"
 	"fmt"
 
+	"short-linker/internal/model"
 	"short-linker/internal/storage"
 )
 
-type LinkRepository interface {
-	Save(id string, originalURL string) error
-	Get(id string) (string, error)
-	Exists(id string) bool
-}
-
 type LinkDataRepository struct {
 	storage *storage.Memory
-	db *sql.DB
+	db      *sql.DB
 }
 
 func NewLinkRepository(storage *storage.Memory, db *sql.DB) *LinkDataRepository {
 	return &LinkDataRepository{
 		storage: storage,
-		db: db,
+		db:      db,
 	}
 }
 
-func (r *LinkDataRepository) Save(id string, originalURL string) error {
-	r.storage.Set(id, originalURL, 0)
-	_, err := r.db.Exec("INSERT INTO links (id, original_url) VALUES ($1, $2)", id, originalURL)
+func (r *LinkDataRepository) Save(items []model.LinkItem) error {
+	if len(items) == 0 {
+		return errors.New("no items to save")
+	}
 
-	return err
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	query := "INSERT INTO links (id, original_url) VALUES "
+	values := []any{}
+
+	for i, item := range items {
+		if i > 0 {
+			query += ","
+		}
+
+		n := i*2 + 1
+
+		query += fmt.Sprintf("($%d, $%d)", n, n+1)
+
+		values = append(values, item.ID, item.OriginalURL)
+	}
+
+	_, err = tx.Exec(query, values...)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	for _, item := range items {
+		r.storage.Set(item.ID, item.OriginalURL, 0)
+	}
+
+	return nil
 }
 
 func (r *LinkDataRepository) Get(id string) (string, error) {

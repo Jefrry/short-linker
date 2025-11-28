@@ -10,6 +10,12 @@ import (
 	"short-linker/internal/service"
 )
 
+// TODO: Don't overwrite the original error.
+//       Use wrapped errors instead, e.g.:
+//       return "", fmt.Errorf("failed to store link: %w", err)
+//       return nil, fmt.Errorf("failed to store link batch: %w", err)
+//       This preserves the underlying cause (e.g., unique constraint,
+//       DB connection issue, SQL syntax) and makes debugging easier.
 type LinkHandler struct {
 	service service.LinkService
 }
@@ -69,6 +75,55 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	w.Write(shortLinkBytes)
+}
+
+// TODO: add tests
+func (h *LinkHandler) CreateShortLinkBatch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ct, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if ct != "application/json" {
+		http.Error(w, "Unsupported Media Type", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+		return
+	}
+
+	if len(body) == 0 {
+		http.Error(w, "empty body", http.StatusBadRequest)
+		return
+	}
+
+	var data []model.LinkBatchPayload
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
+		return
+	}
+
+	var res []model.LinkBatchResponse
+	res, err = h.service.CreateShortLinkBatch(data)
+	if err != nil {
+		http.Error(w, "Failed to create short link batch", http.StatusInternalServerError)
+		return
+	}
+
+	resBytes, err := json.Marshal(res)
+	if err != nil {
+		http.Error(w, "Failed to create response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(resBytes)
 }
 
 // Deprecated: use CreateShortLink with Content-Type: application/json instead
