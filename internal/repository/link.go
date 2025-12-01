@@ -23,7 +23,7 @@ func NewLinkRepository(storage *storage.Memory, db *sql.DB) *LinkDataRepository 
 
 func (r *LinkDataRepository) Save(items []model.LinkItem) error {
 	if len(items) == 0 {
-		return errors.New("no items to save")
+		return fmt.Errorf("no items to save")
 	}
 
 	tx, err := r.db.Begin()

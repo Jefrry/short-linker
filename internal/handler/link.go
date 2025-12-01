@@ -10,12 +10,6 @@ import (
 	"short-linker/internal/service"
 )
 
-// TODO: Don't overwrite the original error.
-//       Use wrapped errors instead, e.g.:
-//       return "", fmt.Errorf("failed to store link: %w", err)
-//       return nil, fmt.Errorf("failed to store link batch: %w", err)
-//       This preserves the underlying cause (e.g., unique constraint,
-//       DB connection issue, SQL syntax) and makes debugging easier.
 type LinkHandler struct {
 	service service.LinkService
 }

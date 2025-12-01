@@ -1,19 +1,13 @@
 package service
 
 import (
-	"errors"
+	"fmt"
 	"strings"
 
 	"short-linker/internal/model"
 	"short-linker/internal/repository"
 	"short-linker/pkg"
 )
-
-type LinkService interface {
-	CreateShortLink(originalURL string) (string, error)
-	CreateShortLinkBatch(items []model.LinkBatchPayload) ([]model.LinkBatchResponse, error)
-	GetOriginalURL(id string) (string, error)
-}
 
 type LinkDataService struct {
 	repo     repository.LinkRepository
@@ -30,21 +24,20 @@ func NewLinkService(repo repository.LinkRepository, baseHost string) *LinkDataSe
 func (s *LinkDataService) CreateShortLink(originalURL string) (string, error) {
 	id, err := s.generateUniqueID()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to generate unique ID: %w", err)
 	}
 
 	if err := s.repo.Save([]model.LinkItem{{ID: id, OriginalURL: originalURL}}); err != nil {
-		return "", errors.New("failed to store link")
+		return "", fmt.Errorf("failed to store link: %w", err)
 	}
 
-	// TODO: move to a separate function
-	shortLink := strings.TrimRight(s.baseHost, "/") + "/" + id
+	shortLink := s.buildShortLink(id)
 	return shortLink, nil
 }
 
 func (s *LinkDataService) CreateShortLinkBatch(items []model.LinkBatchPayload) ([]model.LinkBatchResponse, error) {
 	resItems := make([]model.LinkBatchResponse, 0, len(items))
-    batchItems := make([]model.LinkItem, 0, len(items))
+	batchItems := make([]model.LinkItem, 0, len(items))
 
 	for _, item := range items {
 		if item.URL == "" {
@@ -53,15 +46,15 @@ func (s *LinkDataService) CreateShortLinkBatch(items []model.LinkBatchPayload) (
 
 		id, err := s.generateUniqueID()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to generate unique ID for batch item: %w", err)
 		}
 
 		batchItems = append(batchItems, model.LinkItem{
 			ID:          id,
 			OriginalURL: item.URL,
 		})
-		
-		shortLink := strings.TrimRight(s.baseHost, "/") + "/" + id
+
+		shortLink := s.buildShortLink(id)
 		resItems = append(resItems, model.LinkBatchResponse{
 			CorrelationID: item.CorrelationID,
 			ShortURL:      shortLink,
@@ -69,12 +62,12 @@ func (s *LinkDataService) CreateShortLinkBatch(items []model.LinkBatchPayload) (
 	}
 
 	if len(batchItems) == 0 {
-        return []model.LinkBatchResponse{}, nil
-    }
+		return []model.LinkBatchResponse{}, nil
+	}
 
-    if err := s.repo.Save(batchItems); err != nil {
-        return nil, errors.New("failed to store link batch")
-    }
+	if err := s.repo.Save(batchItems); err != nil {
+		return nil, fmt.Errorf("failed to store link batch: %w", err)
+	}
 
 	return resItems, nil
 }
@@ -82,7 +75,7 @@ func (s *LinkDataService) CreateShortLinkBatch(items []model.LinkBatchPayload) (
 func (s *LinkDataService) GetOriginalURL(id string) (string, error) {
 	originalURL, err := s.repo.Get(id)
 	if err != nil {
-		return "", errors.New("link not found")
+		return "", fmt.Errorf("failed to retrieve link: %w", err)
 	}
 	return originalURL, nil
 }
@@ -92,17 +85,21 @@ func (s *LinkDataService) generateUniqueID() (string, error) {
 	const maxRetries = 5
 	for {
 		if retries >= maxRetries {
-			return "", errors.New("failed to generate unique short link after multiple attempts")
+			return "", fmt.Errorf("failed to generate unique short link after %d attempts", maxRetries)
 		}
 		retries++
 
 		id, err := pkg.RandomStringDefault()
 		if err != nil {
-			return "", errors.New("failed to generate short link")
+			return "", fmt.Errorf("failed to generate random string: %w", err)
 		}
 
 		if !s.repo.Exists(id) {
 			return id, nil
 		}
 	}
+}
+
+func (s *LinkDataService) buildShortLink(id string) string {
+	return strings.TrimRight(s.baseHost, "/") + "/" + id
 }
