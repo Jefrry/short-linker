@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -26,8 +27,14 @@ func (s *LinkDataService) CreateShortLink(originalURL string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to generate unique ID: %w", err)
 	}
-
-	if err := s.repo.Save([]model.LinkItem{{ID: id, OriginalURL: originalURL}}); err != nil {
+	id, err = s.repo.Save(model.LinkItem{
+		ID:          id,
+		OriginalURL: originalURL,
+	})
+	if err != nil && errors.Is(err, model.ErrOriginalURLExists) {
+		return s.buildShortLink(id), model.ErrOriginalURLExists
+	}
+	if err != nil {
 		return "", fmt.Errorf("failed to store link: %w", err)
 	}
 
@@ -65,7 +72,7 @@ func (s *LinkDataService) CreateShortLinkBatch(items []model.LinkBatchPayload) (
 		return []model.LinkBatchResponse{}, nil
 	}
 
-	if err := s.repo.Save(batchItems); err != nil {
+	if err := s.repo.SaveBatch(batchItems); err != nil {
 		return nil, fmt.Errorf("failed to store link batch: %w", err)
 	}
 

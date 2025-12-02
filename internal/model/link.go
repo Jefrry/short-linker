@@ -1,5 +1,7 @@
 package model
 
+import "errors"
+
 type LinkPayload struct {
 	URL string `json:"url"`
 }
@@ -22,3 +24,5 @@ type LinkItem struct {
 	ID          string
 	OriginalURL string
 }
+
+var ErrOriginalURLExists = errors.New("original url already exists")

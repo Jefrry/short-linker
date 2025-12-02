@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"mime"
 	"net/http"
@@ -51,6 +52,24 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shortLink, err := h.service.CreateShortLink(data.URL)
+	// TODO: optimize duplicate code
+	if err != nil && errors.Is(err, model.ErrOriginalURLExists) { // TODO: add tests on this case
+		res := model.LinkResponse{
+			ShortURL: shortLink,
+		}
+
+		shortLinkBytes, err := json.Marshal(res)
+		if err != nil {
+			http.Error(w, "Failed to create response", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		w.Write(shortLinkBytes)
+		return
+	}
+
 	if err != nil {
 		http.Error(w, "Failed to create short link", http.StatusInternalServerError)
 		return
@@ -145,6 +164,12 @@ func (h *LinkHandler) CreateShortLinkPlain(w http.ResponseWriter, r *http.Reques
 	}
 
 	shortLink, err := h.service.CreateShortLink(string(body))
+	if err != nil && errors.Is(err, model.ErrOriginalURLExists) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(shortLink))
+		return
+	}
 	if err != nil {
 		http.Error(w, "Failed to create short link", http.StatusInternalServerError)
 		return

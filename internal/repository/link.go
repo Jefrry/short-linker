@@ -21,7 +21,41 @@ func NewLinkRepository(storage *storage.Memory, db *sql.DB) *LinkDataRepository 
 	}
 }
 
-func (r *LinkDataRepository) Save(items []model.LinkItem) error {
+func (r *LinkDataRepository) Save(item model.LinkItem) (string, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	const query = `
+        INSERT INTO links (id, original_url)
+		VALUES ($1, $2)
+		ON CONFLICT (original_url) DO UPDATE
+			SET original_url = EXCLUDED.original_url
+		RETURNING links.id
+    `
+
+	var savedID string
+	err = tx.QueryRow(query, item.ID, item.OriginalURL).Scan(&savedID)
+	if err != nil {
+		return "", err
+	}
+
+	if savedID != item.ID {
+		return savedID, model.ErrOriginalURLExists
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+
+	r.storage.Set(item.ID, item.OriginalURL, 0)
+
+	return item.ID, nil
+}
+
+func (r *LinkDataRepository) SaveBatch(items []model.LinkItem) error {
 	if len(items) == 0 {
 		return fmt.Errorf("no items to save")
 	}
@@ -30,6 +64,7 @@ func (r *LinkDataRepository) Save(items []model.LinkItem) error {
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
 
 	query := "INSERT INTO links (id, original_url) VALUES "
 	values := []any{}
@@ -45,6 +80,8 @@ func (r *LinkDataRepository) Save(items []model.LinkItem) error {
 
 		values = append(values, item.ID, item.OriginalURL)
 	}
+
+	query += " ON CONFLICT (original_url) DO NOTHING"
 
 	_, err = tx.Exec(query, values...)
 	if err != nil {
