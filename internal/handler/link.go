@@ -52,42 +52,15 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shortLink, err := h.service.CreateShortLink(data.URL)
-	// TODO: optimize duplicate code
-	if err != nil && errors.Is(err, model.ErrOriginalURLExists) { // TODO: add tests on this case
-		res := model.LinkResponse{
-			ShortURL: shortLink,
-		}
-
-		shortLinkBytes, err := json.Marshal(res)
-		if err != nil {
-			http.Error(w, "Failed to create response", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusConflict)
-		w.Write(shortLinkBytes)
+	if err != nil && errors.Is(err, model.ErrOriginalURLExists) {
+		_ = h.writeJSONResponse(w, http.StatusConflict, shortLink)
 		return
 	}
-
 	if err != nil {
 		http.Error(w, "Failed to create short link", http.StatusInternalServerError)
 		return
 	}
-
-	res := model.LinkResponse{
-		ShortURL: shortLink,
-	}
-
-	shortLinkBytes, err := json.Marshal(res)
-	if err != nil {
-		http.Error(w, "Failed to create response", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	w.Write(shortLinkBytes)
+	_ = h.writeJSONResponse(w, http.StatusCreated, shortLink)
 }
 
 // TODO: add tests
@@ -165,19 +138,14 @@ func (h *LinkHandler) CreateShortLinkPlain(w http.ResponseWriter, r *http.Reques
 
 	shortLink, err := h.service.CreateShortLink(string(body))
 	if err != nil && errors.Is(err, model.ErrOriginalURLExists) {
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte(shortLink))
+		h.writePlainResponse(w, http.StatusConflict, shortLink)
 		return
 	}
 	if err != nil {
 		http.Error(w, "Failed to create short link", http.StatusInternalServerError)
 		return
 	}
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(shortLink))
+	h.writePlainResponse(w, http.StatusCreated, shortLink)
 }
 
 func (h *LinkHandler) RedirectPage(w http.ResponseWriter, r *http.Request, id string) {
@@ -193,4 +161,25 @@ func (h *LinkHandler) RedirectPage(w http.ResponseWriter, r *http.Request, id st
 	}
 
 	http.Redirect(w, r, originalURL, http.StatusTemporaryRedirect)
+}
+
+func (h *LinkHandler) writeJSONResponse(w http.ResponseWriter, statusCode int, shortURL string) error {
+	res := model.LinkResponse{
+		ShortURL: shortURL,
+	}
+	shortLinkBytes, err := json.Marshal(res)
+	if err != nil {
+		http.Error(w, "Failed to create response", http.StatusInternalServerError)
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	w.Write(shortLinkBytes)
+	return nil
+}
+
+func (h *LinkHandler) writePlainResponse(w http.ResponseWriter, statusCode int, shortURL string) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(statusCode)
+	w.Write([]byte(shortURL))
 }
