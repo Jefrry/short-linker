@@ -1,24 +1,27 @@
 package router
 
 import (
-	"net/http"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
+	"net/http"
 
-	"short-linker/internal/middleware"
 	"short-linker/internal/handler"
+	"short-linker/internal/middleware"
 )
 
 type Router struct {
-	linkHandler *handler.LinkHandler
+	router *chi.Mux
+
 	pingHandler *handler.PingHandler
-	router      *chi.Mux
+	linkHandler *handler.LinkHandler
+	userHandler *handler.UserHandler
 }
 
-func NewRouter(pingHandler *handler.PingHandler, linkHandler *handler.LinkHandler) *Router {
+func NewRouter(pingHandler *handler.PingHandler, linkHandler *handler.LinkHandler, userHandler *handler.UserHandler) *Router {
 	return &Router{
 		pingHandler: pingHandler,
 		linkHandler: linkHandler,
+		userHandler: userHandler,
 	}
 }
 
@@ -32,6 +35,7 @@ func (r *Router) SetupRoutes(logger *zap.Logger) http.Handler {
 
 	r.baseRoutes()
 	r.linkRoutes()
+	r.userRoutes()
 
 	return router
 }

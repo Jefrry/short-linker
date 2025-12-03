@@ -8,3 +8,7 @@ type LinkRepository interface {
 	Get(id string) (string, error)
 	Exists(id string) bool
 }
+
+type UserRepository interface {
+	Create(user model.User) (model.User, error)
+}

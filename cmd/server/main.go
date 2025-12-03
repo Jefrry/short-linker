@@ -2,13 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"log"
-	"net/http"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
-	"github.com/golang-migrate/migrate/v4"
-    _ "github.com/golang-migrate/migrate/v4/database/postgres"
-    _ "github.com/golang-migrate/migrate/v4/source/file"
+	"log"
+	"net/http"
 
 	"short-linker/internal/config"
 	"short-linker/internal/handler"
@@ -42,13 +42,17 @@ func main() {
 
 	storage := storage.NewMemory()
 
+	pingHandler := handler.NewPingHandler(db)
+
 	linkRepo := repository.NewLinkRepository(storage, db)
 	linkService := service.NewLinkService(linkRepo, cfg.BaseShortURL) // Do I need to pass BaseShortURL here or in repo?
 	linkHandler := handler.NewLinkHandler(linkService)
 
-	pingHandler := handler.NewPingHandler(db)
+	userRepo := repository.NewUserRepository(db)
+	userService := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
 
-	r := router.NewRouter(pingHandler, linkHandler).SetupRoutes(logger)
+	r := router.NewRouter(pingHandler, linkHandler, userHandler).SetupRoutes(logger)
 
 	err = http.ListenAndServe(cfg.Address, r)
 	if err != nil {

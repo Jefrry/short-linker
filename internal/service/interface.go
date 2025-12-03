@@ -9,3 +9,7 @@ type LinkService interface {
 	CreateShortLinkBatch(items []model.LinkBatchPayload) ([]model.LinkBatchResponse, error)
 	GetOriginalURL(id string) (string, error)
 }
+
+type UserService interface {
+	Signup(data model.SignupPayload) (model.User, error)
+}
