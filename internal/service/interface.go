@@ -12,4 +12,9 @@ type LinkService interface {
 
 type UserService interface {
 	Signup(data model.SignupPayload) (model.User, error)
+	Signin(email, password string) (string, error)
+}
+
+type TokenService interface {
+	GenerateToken(userID int64) (string, error)
 }

@@ -2,13 +2,13 @@ package main
 
 import (
 	"database/sql"
+	"log"
+	"net/http"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
-	"log"
-	"net/http"
 
 	"short-linker/internal/config"
 	"short-linker/internal/handler"
@@ -42,6 +42,8 @@ func main() {
 
 	storage := storage.NewMemory()
 
+	tokenService := service.NewTokenService(cfg.JWTSecret)
+
 	pingHandler := handler.NewPingHandler(db)
 
 	linkRepo := repository.NewLinkRepository(storage, db)
@@ -49,7 +51,7 @@ func main() {
 	linkHandler := handler.NewLinkHandler(linkService)
 
 	userRepo := repository.NewUserRepository(db)
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, tokenService)
 	userHandler := handler.NewUserHandler(userService)
 
 	r := router.NewRouter(pingHandler, linkHandler, userHandler).SetupRoutes(logger)

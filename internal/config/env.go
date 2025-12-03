@@ -6,6 +6,7 @@ type Envs struct {
 	Address      string `env:"SERVER_ADDRESS"`
 	BaseShortURL string `env:"BASE_URL"`
 	DatabaseDsn  string `env:"DATABASE_DSN"`
+	JWTSecret    string `env:"JWT_SECRET"`
 }
 
 func parseEnvs() *Envs {

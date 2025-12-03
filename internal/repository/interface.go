@@ -11,4 +11,5 @@ type LinkRepository interface {
 
 type UserRepository interface {
 	Create(user model.User) (model.User, error)
+	GetByEmail(email string) (model.User, error)
 }

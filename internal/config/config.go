@@ -4,6 +4,7 @@ type Config struct {
 	Address      string
 	BaseShortURL string
 	DatabaseDsn  string
+	JWTSecret    string
 }
 
 func GetConfig() *Config {
@@ -25,9 +26,15 @@ func GetConfig() *Config {
 		currentDatabaseDsn = envs.DatabaseDsn
 	}
 
+	currentJWTSecret := flags.JWTSecret
+	if envs.JWTSecret != "" {
+		currentJWTSecret = envs.JWTSecret
+	}
+
 	return &Config{
 		Address:      currentAdress,
 		BaseShortURL: currentBaseURL,
 		DatabaseDsn:  currentDatabaseDsn,
+		JWTSecret:    currentJWTSecret,
 	}
 }

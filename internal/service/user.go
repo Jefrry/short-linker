@@ -8,19 +8,21 @@ import (
 )
 
 type UserDataService struct {
-	repo repository.UserRepository
+	repo         repository.UserRepository
+	tokenService TokenService
 }
 
-func NewUserService(repo repository.UserRepository) *UserDataService {
+func NewUserService(repo repository.UserRepository, tokenService TokenService) *UserDataService {
 	return &UserDataService{
-		repo: repo,
+		repo:         repo,
+		tokenService: tokenService,
 	}
 }
 
 func (s *UserDataService) Signup(data model.SignupPayload) (model.User, error) {
 	user := model.User{
-		Name:     data.Name,
-		Email:    data.Email,
+		Name:  data.Name,
+		Email: data.Email,
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(data.Password), bcrypt.DefaultCost)
@@ -35,4 +37,23 @@ func (s *UserDataService) Signup(data model.SignupPayload) (model.User, error) {
 	}
 
 	return createdUser, nil
+}
+
+func (s *UserDataService) Signin(email, password string) (string, error) {
+	user, err := s.repo.GetByEmail(email)
+	if err != nil {
+		return "", err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return "", err
+	}
+	
+	token, err := s.tokenService.GenerateToken(user.ID)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
