@@ -57,3 +57,7 @@ func (s *UserDataService) Signin(email, password string) (string, error) {
 
 	return token, nil
 }
+
+func (s *UserDataService) GetProfile(userID int64) (model.User, error) {
+	return s.repo.GetByID(userID)
+}

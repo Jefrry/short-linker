@@ -78,3 +78,34 @@ func (r *UserDataRepository) GetByEmail(email string) (model.User, error) {
 
 	return user, nil
 }
+
+func (r *UserDataRepository) GetByID(id int64) (model.User, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return model.User{}, err
+	}
+	defer tx.Rollback()
+
+	const query = `
+		SELECT id, name, email, created_at
+		FROM users
+		WHERE id = $1
+	`
+
+	var user model.User
+	err = tx.QueryRow(query, id).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.CreatedAt,
+	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return model.User{}, err
+	}
+
+	return user, nil
+}

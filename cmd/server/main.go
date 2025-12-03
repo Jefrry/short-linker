@@ -46,6 +46,7 @@ func main() {
 
 	pingHandler := handler.NewPingHandler(db)
 
+	// TODO: Add context to handlers
 	linkRepo := repository.NewLinkRepository(storage, db)
 	linkService := service.NewLinkService(linkRepo, cfg.BaseShortURL) // Do I need to pass BaseShortURL here or in repo?
 	linkHandler := handler.NewLinkHandler(linkService)
@@ -54,7 +55,7 @@ func main() {
 	userService := service.NewUserService(userRepo, tokenService)
 	userHandler := handler.NewUserHandler(userService)
 
-	r := router.NewRouter(pingHandler, linkHandler, userHandler).SetupRoutes(logger)
+	r := router.NewRouter(cfg.JWTSecret, pingHandler, linkHandler, userHandler).SetupRoutes(logger)
 
 	err = http.ListenAndServe(cfg.Address, r)
 	if err != nil {

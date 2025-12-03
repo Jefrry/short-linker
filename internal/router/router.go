@@ -10,15 +10,17 @@ import (
 )
 
 type Router struct {
-	router *chi.Mux
+	router    *chi.Mux
+	JWTSecret string
 
 	pingHandler *handler.PingHandler
 	linkHandler *handler.LinkHandler
 	userHandler *handler.UserHandler
 }
 
-func NewRouter(pingHandler *handler.PingHandler, linkHandler *handler.LinkHandler, userHandler *handler.UserHandler) *Router {
+func NewRouter(JWTSecret string, pingHandler *handler.PingHandler, linkHandler *handler.LinkHandler, userHandler *handler.UserHandler) *Router {
 	return &Router{
+		JWTSecret:   JWTSecret,
 		pingHandler: pingHandler,
 		linkHandler: linkHandler,
 		userHandler: userHandler,

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"short-linker/internal/middleware"
 	"short-linker/internal/model"
 	"short-linker/internal/service"
 )
@@ -128,4 +129,27 @@ func (h *UserHandler) Signin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(token))
+}
+
+func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := h.service.GetProfile(userID)
+	if err != nil {
+		http.Error(w, "Failed to get user profile", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(user)
 }
