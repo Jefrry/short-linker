@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"golang.org/x/crypto/bcrypt"
 
 	"short-linker/internal/model"
@@ -19,7 +21,7 @@ func NewUserService(repo repository.UserRepository, tokenService TokenService) *
 	}
 }
 
-func (s *UserDataService) Signup(data model.SignupPayload) (model.User, error) {
+func (s *UserDataService) Signup(ctx context.Context, data model.SignupPayload) (model.User, error) {
 	user := model.User{
 		Name:  data.Name,
 		Email: data.Email,
@@ -31,7 +33,7 @@ func (s *UserDataService) Signup(data model.SignupPayload) (model.User, error) {
 	}
 	user.Password = string(hash)
 
-	createdUser, err := s.repo.Create(user)
+	createdUser, err := s.repo.Create(ctx, user)
 	if err != nil {
 		return model.User{}, err
 	}
@@ -39,8 +41,8 @@ func (s *UserDataService) Signup(data model.SignupPayload) (model.User, error) {
 	return createdUser, nil
 }
 
-func (s *UserDataService) Signin(email, password string) (string, error) {
-	user, err := s.repo.GetByEmail(email)
+func (s *UserDataService) Signin(ctx context.Context, email, password string) (string, error) {
+	user, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
 		return "", err
 	}
@@ -49,7 +51,7 @@ func (s *UserDataService) Signin(email, password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	token, err := s.tokenService.GenerateToken(user.ID)
 	if err != nil {
 		return "", err
@@ -58,6 +60,6 @@ func (s *UserDataService) Signin(email, password string) (string, error) {
 	return token, nil
 }
 
-func (s *UserDataService) GetProfile(userID int64) (model.User, error) {
-	return s.repo.GetByID(userID)
+func (s *UserDataService) GetProfile(ctx context.Context, userID int64) (model.User, error) {
+	return s.repo.GetByID(ctx, userID)
 }

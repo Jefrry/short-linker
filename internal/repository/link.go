@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -21,7 +22,7 @@ func NewLinkRepository(storage *storage.Memory, db *sql.DB) *LinkDataRepository 
 	}
 }
 
-func (r *LinkDataRepository) Save(item model.LinkItem) (string, error) {
+func (r *LinkDataRepository) Save(ctx context.Context, item model.LinkItem) (string, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return "", err
@@ -37,7 +38,7 @@ func (r *LinkDataRepository) Save(item model.LinkItem) (string, error) {
     `
 
 	var savedID string
-	err = tx.QueryRow(query, item.ID, item.OriginalURL).Scan(&savedID)
+	err = tx.QueryRowContext(ctx, query, item.ID, item.OriginalURL).Scan(&savedID)
 	if err != nil {
 		return "", err
 	}
@@ -55,12 +56,12 @@ func (r *LinkDataRepository) Save(item model.LinkItem) (string, error) {
 	return item.ID, nil
 }
 
-func (r *LinkDataRepository) SaveBatch(items []model.LinkItem) error {
+func (r *LinkDataRepository) SaveBatch(ctx context.Context, items []model.LinkItem) error {
 	if len(items) == 0 {
 		return fmt.Errorf("no items to save")
 	}
 
-	tx, err := r.db.Begin()
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func (r *LinkDataRepository) SaveBatch(items []model.LinkItem) error {
 
 	query += " ON CONFLICT (original_url) DO NOTHING"
 
-	_, err = tx.Exec(query, values...)
+	_, err = tx.ExecContext(ctx, query, values...)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -100,7 +101,7 @@ func (r *LinkDataRepository) SaveBatch(items []model.LinkItem) error {
 	return nil
 }
 
-func (r *LinkDataRepository) Get(id string) (string, error) {
+func (r *LinkDataRepository) Get(ctx context.Context, id string) (string, error) {
 	var originalURL string
 
 	if url, ok := r.storage.Get(id); ok && url != "" {
@@ -108,7 +109,7 @@ func (r *LinkDataRepository) Get(id string) (string, error) {
 		return originalURL, nil
 	}
 
-	err := r.db.QueryRow("SELECT original_url FROM links WHERE id = $1", id).Scan(&originalURL)
+	err := r.db.QueryRowContext(ctx, "SELECT original_url FROM links WHERE id = $1", id).Scan(&originalURL)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", fmt.Errorf("link not found")
@@ -119,14 +120,14 @@ func (r *LinkDataRepository) Get(id string) (string, error) {
 	return originalURL, nil
 }
 
-func (r *LinkDataRepository) Exists(id string) bool {
+func (r *LinkDataRepository) Exists(ctx context.Context, id string) bool {
 	var exists bool
 
 	if r.storage.Exists(id) {
 		return true
 	}
 
-	err := r.db.QueryRow("SELECT EXISTS(SELECT 1 FROM links WHERE id = $1)", id).Scan(&exists)
+	err := r.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM links WHERE id = $1)", id).Scan(&exists)
 	if err != nil {
 		return false
 	}

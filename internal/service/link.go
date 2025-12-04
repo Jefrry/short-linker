@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -22,12 +23,12 @@ func NewLinkService(repo repository.LinkRepository, baseHost string) *LinkDataSe
 	}
 }
 
-func (s *LinkDataService) CreateShortLink(originalURL string) (string, error) {
-	id, err := s.generateUniqueID()
+func (s *LinkDataService) CreateShortLink(ctx context.Context, originalURL string) (string, error) {
+	id, err := s.generateUniqueID(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate unique ID: %w", err)
 	}
-	id, err = s.repo.Save(model.LinkItem{
+	id, err = s.repo.Save(ctx, model.LinkItem{
 		ID:          id,
 		OriginalURL: originalURL,
 	})
@@ -42,7 +43,7 @@ func (s *LinkDataService) CreateShortLink(originalURL string) (string, error) {
 	return shortLink, nil
 }
 
-func (s *LinkDataService) CreateShortLinkBatch(items []model.LinkBatchPayload) ([]model.LinkBatchResponse, error) {
+func (s *LinkDataService) CreateShortLinkBatch(ctx context.Context, items []model.LinkBatchPayload) ([]model.LinkBatchResponse, error) {
 	resItems := make([]model.LinkBatchResponse, 0, len(items))
 	batchItems := make([]model.LinkItem, 0, len(items))
 
@@ -51,7 +52,7 @@ func (s *LinkDataService) CreateShortLinkBatch(items []model.LinkBatchPayload) (
 			continue
 		}
 
-		id, err := s.generateUniqueID()
+		id, err := s.generateUniqueID(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate unique ID for batch item: %w", err)
 		}
@@ -72,24 +73,25 @@ func (s *LinkDataService) CreateShortLinkBatch(items []model.LinkBatchPayload) (
 		return []model.LinkBatchResponse{}, nil
 	}
 
-	if err := s.repo.SaveBatch(batchItems); err != nil {
+	if err := s.repo.SaveBatch(ctx, batchItems); err != nil {
 		return nil, fmt.Errorf("failed to store link batch: %w", err)
 	}
 
 	return resItems, nil
 }
 
-func (s *LinkDataService) GetOriginalURL(id string) (string, error) {
-	originalURL, err := s.repo.Get(id)
+func (s *LinkDataService) GetOriginalURL(ctx context.Context, id string) (string, error) {
+	originalURL, err := s.repo.Get(ctx, id)
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve link: %w", err)
 	}
 	return originalURL, nil
 }
 
-func (s *LinkDataService) generateUniqueID() (string, error) {
+func (s *LinkDataService) generateUniqueID(ctx context.Context) (string, error) {
 	retries := 0
 	const maxRetries = 5
+	
 	for {
 		if retries >= maxRetries {
 			return "", fmt.Errorf("failed to generate unique short link after %d attempts", maxRetries)
@@ -101,7 +103,7 @@ func (s *LinkDataService) generateUniqueID() (string, error) {
 			return "", fmt.Errorf("failed to generate random string: %w", err)
 		}
 
-		if !s.repo.Exists(id) {
+		if !s.repo.Exists(ctx, id) {
 			return id, nil
 		}
 	}

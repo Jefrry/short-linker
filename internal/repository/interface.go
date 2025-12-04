@@ -1,16 +1,19 @@
 package repository
 
-import "short-linker/internal/model"
+import (
+	"context"
+	"short-linker/internal/model"
+)
 
 type LinkRepository interface {
-	Save(item model.LinkItem) (string, error)
-	SaveBatch(item []model.LinkItem) error
-	Get(id string) (string, error)
-	Exists(id string) bool
+	Save(ctx context.Context, item model.LinkItem) (string, error)
+	SaveBatch(ctx context.Context, item []model.LinkItem) error
+	Get(ctx context.Context, id string) (string, error)
+	Exists(ctx context.Context, id string) bool
 }
 
 type UserRepository interface {
-	Create(user model.User) (model.User, error)
-	GetByEmail(email string) (model.User, error)
-	GetByID(userID int64) (model.User, error)
+	Create(ctx context.Context, user model.User) (model.User, error)
+	GetByEmail(ctx context.Context, email string) (model.User, error)
+	GetByID(ctx context.Context, userID int64) (model.User, error)
 }

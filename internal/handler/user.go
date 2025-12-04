@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"mime"
@@ -58,7 +59,11 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.service.Signup(data)
+	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	res, err := h.service.Signup(ctx, data)
 	if err != nil {
 		http.Error(w, "Failed to signup user", http.StatusInternalServerError)
 		return
@@ -108,7 +113,11 @@ func (h *UserHandler) Signin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.service.Signin(data.Email, data.Password)
+	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	token, err := h.service.Signin(ctx, data.Email, data.Password)
 	if err != nil {
 		http.Error(w, "Failed to signin user", http.StatusInternalServerError)
 		return
@@ -143,7 +152,11 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.GetProfile(userID)
+	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	user, err := h.service.GetProfile(ctx, userID)
 	if err != nil {
 		http.Error(w, "Failed to get user profile", http.StatusInternalServerError)
 		return

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 
 	"short-linker/internal/model"
@@ -16,13 +17,13 @@ func NewUserRepository(db *sql.DB) *UserDataRepository {
 	}
 }
 
-func (r *UserDataRepository) Create(user model.User) (model.User, error) {
-	tx, err := r.db.Begin()
+func (r *UserDataRepository) Create(ctx context.Context, user model.User) (model.User, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return model.User{}, err
 	}
 	defer tx.Rollback()
-	
+
 	const query = `
 		INSERT INTO users (name, email, password)
 		VALUES ($1, $2, $3)
@@ -30,7 +31,7 @@ func (r *UserDataRepository) Create(user model.User) (model.User, error) {
 	`
 
 	var createdUser model.User
-	err = tx.QueryRow(query, user.Name, user.Email, user.Password).Scan(
+	err = tx.QueryRowContext(ctx, query, user.Name, user.Email, user.Password).Scan(
 		&createdUser.ID,
 		&createdUser.Name,
 		&createdUser.Email,
@@ -47,13 +48,13 @@ func (r *UserDataRepository) Create(user model.User) (model.User, error) {
 	return createdUser, nil
 }
 
-func (r *UserDataRepository) GetByEmail(email string) (model.User, error) {
-	tx, err := r.db.Begin()
+func (r *UserDataRepository) GetByEmail(ctx context.Context, email string) (model.User, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return model.User{}, err
 	}
 	defer tx.Rollback()
-	
+
 	const query = `
 		SELECT id, name, email, password, created_at
 		FROM users
@@ -61,7 +62,7 @@ func (r *UserDataRepository) GetByEmail(email string) (model.User, error) {
 	`
 
 	var user model.User
-	err = tx.QueryRow(query, email).Scan(
+	err = tx.QueryRowContext(ctx, query, email).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,
@@ -79,8 +80,8 @@ func (r *UserDataRepository) GetByEmail(email string) (model.User, error) {
 	return user, nil
 }
 
-func (r *UserDataRepository) GetByID(id int64) (model.User, error) {
-	tx, err := r.db.Begin()
+func (r *UserDataRepository) GetByID(ctx context.Context, id int64) (model.User, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return model.User{}, err
 	}
@@ -93,7 +94,7 @@ func (r *UserDataRepository) GetByID(id int64) (model.User, error) {
 	`
 
 	var user model.User
-	err = tx.QueryRow(query, id).Scan(
+	err = tx.QueryRowContext(ctx, query, id).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,

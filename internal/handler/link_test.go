@@ -2,12 +2,14 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
 	"github.com/stretchr/testify/assert"
 
 	"short-linker/internal/handler"
@@ -23,15 +25,15 @@ type mockLinkService struct {
 	getErr    error
 }
 
-func (m *mockLinkService) CreateShortLink(originalURL string) (string, error) {
+func (m *mockLinkService) CreateShortLink(ctx context.Context, originalURL string) (string, error) {
 	return m.createResult, m.createErr
 }
 
-func (m *mockLinkService) GetOriginalURL(id string) (string, error) {
+func (m *mockLinkService) GetOriginalURL(ctx context.Context, id string) (string, error) {
 	return m.getResult, m.getErr
 }
 
-func (m *mockLinkService) CreateShortLinkBatch(items []model.LinkBatchPayload) ([]model.LinkBatchResponse, error) {
+func (m *mockLinkService) CreateShortLinkBatch(ctx context.Context, items []model.LinkBatchPayload) ([]model.LinkBatchResponse, error) {
 	return nil, nil
 }
 
@@ -248,7 +250,7 @@ func TestRedirectPage(t *testing.T) {
 			linkService := &mockLinkService{getResult: tt.serviceResult, getErr: tt.serviceErr}
 			handler := handler.NewLinkHandler(linkService)
 
-			req := httptest.NewRequest(tt.reqData.method, "/" + tt.reqData.id, nil)
+			req := httptest.NewRequest(tt.reqData.method, "/"+tt.reqData.id, nil)
 			w := httptest.NewRecorder()
 
 			handler.RedirectPage(w, req, randomID)
