@@ -23,6 +23,7 @@ type LinkBatchResponse struct {
 type LinkItem struct {
 	ID          string
 	OriginalURL string
+	UserID      int64
 }
 
 var ErrOriginalURLExists = errors.New("original url already exists")

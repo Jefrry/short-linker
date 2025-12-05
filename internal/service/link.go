@@ -23,7 +23,7 @@ func NewLinkService(repo repository.LinkRepository, baseHost string) *LinkDataSe
 	}
 }
 
-func (s *LinkDataService) CreateShortLink(ctx context.Context, originalURL string) (string, error) {
+func (s *LinkDataService) CreateShortLink(ctx context.Context, originalURL string, userID int64) (string, error) {
 	id, err := s.generateUniqueID(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate unique ID: %w", err)
@@ -31,6 +31,7 @@ func (s *LinkDataService) CreateShortLink(ctx context.Context, originalURL strin
 	id, err = s.repo.Save(ctx, model.LinkItem{
 		ID:          id,
 		OriginalURL: originalURL,
+		UserID:      userID,
 	})
 	if err != nil && errors.Is(err, model.ErrOriginalURLExists) {
 		return s.buildShortLink(id), model.ErrOriginalURLExists
@@ -43,7 +44,7 @@ func (s *LinkDataService) CreateShortLink(ctx context.Context, originalURL strin
 	return shortLink, nil
 }
 
-func (s *LinkDataService) CreateShortLinkBatch(ctx context.Context, items []model.LinkBatchPayload) ([]model.LinkBatchResponse, error) {
+func (s *LinkDataService) CreateShortLinkBatch(ctx context.Context, items []model.LinkBatchPayload, userID int64) ([]model.LinkBatchResponse, error) {
 	resItems := make([]model.LinkBatchResponse, 0, len(items))
 	batchItems := make([]model.LinkItem, 0, len(items))
 
@@ -60,6 +61,7 @@ func (s *LinkDataService) CreateShortLinkBatch(ctx context.Context, items []mode
 		batchItems = append(batchItems, model.LinkItem{
 			ID:          id,
 			OriginalURL: item.URL,
+			UserID:      userID,
 		})
 
 		shortLink := s.buildShortLink(id)

@@ -29,16 +29,28 @@ func (r *LinkDataRepository) Save(ctx context.Context, item model.LinkItem) (str
 	}
 	defer tx.Rollback()
 
+	// ISSUE: there is a business issue here,
+	// original_url should be unique per user,
+	// but current implementation makes it unique globally.
+	// So if two different users shorten the same URL,
+	// they will get the same short link and user_id will be first user.
 	const query = `
-        INSERT INTO links (id, original_url)
-		VALUES ($1, $2)
+        INSERT INTO links (id, original_url, user_id)
+		VALUES ($1, $2, $3)
 		ON CONFLICT (original_url) DO UPDATE
 			SET original_url = EXCLUDED.original_url
 		RETURNING links.id
     `
 
+	var userID any
+	if item.UserID == 0 {
+		userID = nil
+	} else {
+		userID = item.UserID
+	}
+
 	var savedID string
-	err = tx.QueryRowContext(ctx, query, item.ID, item.OriginalURL).Scan(&savedID)
+	err = tx.QueryRowContext(ctx, query, item.ID, item.OriginalURL, userID).Scan(&savedID)
 	if err != nil {
 		return "", err
 	}
@@ -56,6 +68,8 @@ func (r *LinkDataRepository) Save(ctx context.Context, item model.LinkItem) (str
 	return item.ID, nil
 }
 
+// TODO: optimize function to avoid concatenating a huge query string,
+// use fixed size slice when building values
 func (r *LinkDataRepository) SaveBatch(ctx context.Context, items []model.LinkItem) error {
 	if len(items) == 0 {
 		return fmt.Errorf("no items to save")
@@ -67,7 +81,7 @@ func (r *LinkDataRepository) SaveBatch(ctx context.Context, items []model.LinkIt
 	}
 	defer tx.Rollback()
 
-	query := "INSERT INTO links (id, original_url) VALUES "
+	query := "INSERT INTO links (id, original_url, user_id) VALUES "
 	values := []any{}
 
 	for i, item := range items {
@@ -75,11 +89,18 @@ func (r *LinkDataRepository) SaveBatch(ctx context.Context, items []model.LinkIt
 			query += ","
 		}
 
-		n := i*2 + 1
+		n := i*3 + 1
 
-		query += fmt.Sprintf("($%d, $%d)", n, n+1)
+		query += fmt.Sprintf("($%d, $%d, $%d)", n, n+1, n+2)
 
-		values = append(values, item.ID, item.OriginalURL)
+		var userID any
+		if item.UserID == 0 {
+			userID = nil
+		} else {
+			userID = item.UserID
+		}
+
+		values = append(values, item.ID, item.OriginalURL, userID)
 	}
 
 	query += " ON CONFLICT (original_url) DO NOTHING"

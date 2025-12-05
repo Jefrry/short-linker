@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"short-linker/internal/middleware"
 	"short-linker/internal/model"
 	"short-linker/internal/service"
 )
@@ -53,11 +54,14 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+
 	ctx := r.Context()
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
-	shortLink, err := h.service.CreateShortLink(ctx, data.URL)
+	userID, _ := middleware.GetUserID(r.Context())
+
+	shortLink, err := h.service.CreateShortLink(ctx, data.URL, userID)
 	if err != nil && errors.Is(err, model.ErrOriginalURLExists) {
 		_ = h.writeJSONResponse(w, http.StatusConflict, shortLink)
 		return
@@ -104,8 +108,10 @@ func (h *LinkHandler) CreateShortLinkBatch(w http.ResponseWriter, r *http.Reques
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
+	userID, _ := middleware.GetUserID(r.Context())
+
 	var res []model.LinkBatchResponse
-	res, err = h.service.CreateShortLinkBatch(ctx, data)
+	res, err = h.service.CreateShortLinkBatch(ctx, data, userID)
 	if err != nil {
 		http.Error(w, "Failed to create short link batch", http.StatusInternalServerError)
 		return
@@ -150,7 +156,7 @@ func (h *LinkHandler) CreateShortLinkPlain(w http.ResponseWriter, r *http.Reques
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
-	shortLink, err := h.service.CreateShortLink(ctx, string(body))
+	shortLink, err := h.service.CreateShortLink(ctx, string(body), 0)
 	if err != nil && errors.Is(err, model.ErrOriginalURLExists) {
 		h.writePlainResponse(w, http.StatusConflict, shortLink)
 		return
