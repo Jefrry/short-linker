@@ -13,6 +13,7 @@ func (r *Router) userRoutes() {
 	r.router.Group(func(pr chi.Router) {
 		pr.Use(middleware.AuthMiddleware([]byte(r.JWTSecret)))
 
+		pr.Post("/api/user/signout", r.userHandler.Signout)
 		pr.Get("/api/user/profile", r.userHandler.GetProfile)
 	})
 }

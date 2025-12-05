@@ -166,3 +166,25 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(user)
 }
+
+func (h *UserHandler) Signout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+        Name:     "access_token",
+        Value:    "",
+        Path:     "/",
+        MaxAge:   -1,
+        HttpOnly: true,
+        Secure:   false, // CAUTION: change to true in production
+        SameSite: http.SameSiteLaxMode,
+    })
+
+    w.WriteHeader(http.StatusOK)
+    _ = json.NewEncoder(w).Encode(map[string]any{
+        "message": "logged out",
+    })
+}
