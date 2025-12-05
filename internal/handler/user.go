@@ -194,3 +194,38 @@ func (h *UserHandler) Signout(w http.ResponseWriter, r *http.Request) {
 		"message": "logged out",
 	})
 }
+
+func (h *UserHandler) GetLinks(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	links, err := h.service.GetLinks(ctx, userID)
+	if err != nil {
+		http.Error(w, "Failed to get user links", http.StatusInternalServerError)
+		h.logger.Error("GetLinks error", zap.Error(err))
+		return
+	}
+
+	var statusCode int
+	if len(links) == 0 {
+		statusCode = http.StatusNoContent
+	} else {
+		statusCode = http.StatusOK
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_ = json.NewEncoder(w).Encode(links)
+}

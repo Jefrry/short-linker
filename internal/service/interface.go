@@ -15,6 +15,7 @@ type UserService interface {
 	Signup(ctx context.Context, data model.SignupPayload) (model.User, error)
 	Signin(ctx context.Context, email, password string) (string, error)
 	GetProfile(ctx context.Context, userID int64) (model.User, error)
+	GetLinks(ctx context.Context, userID int64) ([]model.LinkItem, error)
 }
 
 type TokenService interface {

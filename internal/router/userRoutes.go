@@ -15,5 +15,6 @@ func (r *Router) userRoutes() {
 
 		pr.Post("/api/user/signout", r.userHandler.Signout)
 		pr.Get("/api/user/profile", r.userHandler.GetProfile)
+		pr.Get("/api/user/urls", r.userHandler.GetLinks)
 	})
 }

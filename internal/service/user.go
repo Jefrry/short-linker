@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-
 	"golang.org/x/crypto/bcrypt"
 
 	"short-linker/internal/model"
@@ -10,14 +9,18 @@ import (
 )
 
 type UserDataService struct {
-	repo         repository.UserRepository
 	tokenService TokenService
+
+	userRepo repository.UserRepository
+	linkRepo repository.LinkRepository
 }
 
-func NewUserService(repo repository.UserRepository, tokenService TokenService) *UserDataService {
+func NewUserService(tokenService TokenService, userRepo repository.UserRepository, linkRepo repository.LinkRepository) *UserDataService {
 	return &UserDataService{
-		repo:         repo,
 		tokenService: tokenService,
+
+		userRepo: userRepo,
+		linkRepo: linkRepo,
 	}
 }
 
@@ -33,7 +36,7 @@ func (s *UserDataService) Signup(ctx context.Context, data model.SignupPayload) 
 	}
 	user.Password = string(hash)
 
-	createdUser, err := s.repo.Create(ctx, user)
+	createdUser, err := s.userRepo.Create(ctx, user)
 	if err != nil {
 		return model.User{}, err
 	}
@@ -42,7 +45,7 @@ func (s *UserDataService) Signup(ctx context.Context, data model.SignupPayload) 
 }
 
 func (s *UserDataService) Signin(ctx context.Context, email, password string) (string, error) {
-	user, err := s.repo.GetByEmail(ctx, email)
+	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		return "", err
 	}
@@ -61,5 +64,9 @@ func (s *UserDataService) Signin(ctx context.Context, email, password string) (s
 }
 
 func (s *UserDataService) GetProfile(ctx context.Context, userID int64) (model.User, error) {
-	return s.repo.GetByID(ctx, userID)
+	return s.userRepo.GetByID(ctx, userID)
+}
+
+func (s *UserDataService) GetLinks(ctx context.Context, userID int64) ([]model.LinkItem, error) {
+	return s.linkRepo.GetByUserID(ctx, userID)
 }

@@ -155,3 +155,47 @@ func (r *LinkDataRepository) Exists(ctx context.Context, id string) bool {
 
 	return exists
 }
+
+func (r *LinkDataRepository) GetByUserID(ctx context.Context, userID int64) ([]model.LinkItem, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	const query = `
+		SELECT id, original_url, user_id
+		FROM links
+		WHERE user_id = $1
+	`
+
+	rows, err := tx.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var links []model.LinkItem
+	for rows.Next() {
+		var item model.LinkItem
+		err := rows.Scan(
+			&item.ID,
+			&item.OriginalURL,
+			&item.UserID,
+		)
+		if err != nil {
+			return nil, err
+		}
+		links = append(links, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return links, nil
+}
