@@ -55,8 +55,8 @@ func NewApp(cfg *config.Config) (*App, error) {
 	userService := service.NewUserService(userRepo, service.NewTokenService(cfg.JWTSecret))
 
 	pingHandler := handler.NewPingHandler(db)
-	linkHandler := handler.NewLinkHandler(linkService)
-	userHandler := handler.NewUserHandler(userService)
+	linkHandler := handler.NewLinkHandler(logger, linkService)
+	userHandler := handler.NewUserHandler(logger, userService)
 
 	r := router.NewRouter(cfg.JWTSecret, pingHandler, linkHandler, userHandler).SetupRoutes(logger)
 

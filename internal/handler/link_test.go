@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 
 	"short-linker/internal/handler"
 	"short-linker/internal/model"
@@ -149,10 +150,12 @@ func TestCreateShortLink(t *testing.T) {
 		},
 	}
 
+	logger := zap.NewNop()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			linkService := &mockLinkService{createResult: tt.serviceResult, createErr: tt.serviceErr}
-			handler := handler.NewLinkHandler(linkService)
+			handler := handler.NewLinkHandler(logger, linkService)
 
 			var bodyReader io.Reader
 			if tt.reqData.body != "" {
@@ -247,10 +250,12 @@ func TestRedirectPage(t *testing.T) {
 		},
 	}
 
+	logger := zap.NewNop()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			linkService := &mockLinkService{getResult: tt.serviceResult, getErr: tt.serviceErr}
-			handler := handler.NewLinkHandler(linkService)
+			handler := handler.NewLinkHandler(logger, linkService)
 
 			req := httptest.NewRequest(tt.reqData.method, "/"+tt.reqData.id, nil)
 			w := httptest.NewRecorder()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"go.uber.org/zap"
 	"io"
 	"mime"
 	"net/http"
@@ -16,11 +17,13 @@ import (
 
 type LinkHandler struct {
 	service service.LinkService
+	logger  *zap.Logger
 }
 
-func NewLinkHandler(service service.LinkService) *LinkHandler {
+func NewLinkHandler(logger *zap.Logger, service service.LinkService) *LinkHandler {
 	return &LinkHandler{
 		service: service,
+		logger:  logger,
 	}
 }
 
@@ -54,7 +57,6 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	ctx := r.Context()
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -68,6 +70,7 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		http.Error(w, "Failed to create short link", http.StatusInternalServerError)
+		h.logger.Error("CreateShortLink error", zap.Error(err))
 		return
 	}
 	_ = h.writeJSONResponse(w, http.StatusCreated, shortLink)
@@ -120,6 +123,7 @@ func (h *LinkHandler) CreateShortLinkBatch(w http.ResponseWriter, r *http.Reques
 	resBytes, err := json.Marshal(res)
 	if err != nil {
 		http.Error(w, "Failed to create response", http.StatusInternalServerError)
+		h.logger.Error("CreateShortLinkBatch error", zap.Error(err))
 		return
 	}
 
@@ -163,6 +167,7 @@ func (h *LinkHandler) CreateShortLinkPlain(w http.ResponseWriter, r *http.Reques
 	}
 	if err != nil {
 		http.Error(w, "Failed to create short link", http.StatusInternalServerError)
+		h.logger.Error("CreateShortLinkPlain error", zap.Error(err))
 		return
 	}
 	h.writePlainResponse(w, http.StatusCreated, shortLink)

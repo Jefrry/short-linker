@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"go.uber.org/zap"
 	"io"
 	"mime"
 	"net/http"
@@ -15,11 +16,13 @@ import (
 
 type UserHandler struct {
 	service service.UserService
+	logger  *zap.Logger
 }
 
-func NewUserHandler(service service.UserService) *UserHandler {
+func NewUserHandler(logger *zap.Logger, service service.UserService) *UserHandler {
 	return &UserHandler{
 		service: service,
+		logger:  logger,
 	}
 }
 
@@ -66,6 +69,7 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	res, err := h.service.Signup(ctx, data)
 	if err != nil {
 		http.Error(w, "Failed to signup user", http.StatusInternalServerError)
+		h.logger.Error("Signup error", zap.Error(err))
 		return
 	}
 
@@ -120,6 +124,7 @@ func (h *UserHandler) Signin(w http.ResponseWriter, r *http.Request) {
 	token, err := h.service.Signin(ctx, data.Email, data.Password)
 	if err != nil {
 		http.Error(w, "Failed to signin user", http.StatusInternalServerError)
+		h.logger.Error("Signin error", zap.Error(err))
 		return
 	}
 
@@ -159,6 +164,7 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	user, err := h.service.GetProfile(ctx, userID)
 	if err != nil {
 		http.Error(w, "Failed to get user profile", http.StatusInternalServerError)
+		h.logger.Error("GetProfile error", zap.Error(err))
 		return
 	}
 
@@ -174,17 +180,17 @@ func (h *UserHandler) Signout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-        Name:     "session_token",
-        Value:    "",
-        Path:     "/",
-        MaxAge:   -1,
-        HttpOnly: true,
-        Secure:   false, // CAUTION: change to true in production
-        SameSite: http.SameSiteLaxMode,
-    })
+		Name:     "session_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   false, // CAUTION: change to true in production
+		SameSite: http.SameSiteLaxMode,
+	})
 
-    w.WriteHeader(http.StatusOK)
-    _ = json.NewEncoder(w).Encode(map[string]any{
-        "message": "logged out",
-    })
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"message": "logged out",
+	})
 }
