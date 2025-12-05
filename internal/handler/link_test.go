@@ -25,7 +25,7 @@ type mockLinkService struct {
 	getErr    error
 }
 
-func (m *mockLinkService) CreateShortLink(ctx context.Context, originalURL string) (string, error) {
+func (m *mockLinkService) CreateShortLink(ctx context.Context, originalURL string, userID int64) (string, error) {
 	return m.createResult, m.createErr
 }
 
@@ -33,7 +33,7 @@ func (m *mockLinkService) GetOriginalURL(ctx context.Context, id string) (string
 	return m.getResult, m.getErr
 }
 
-func (m *mockLinkService) CreateShortLinkBatch(ctx context.Context, items []model.LinkBatchPayload) ([]model.LinkBatchResponse, error) {
+func (m *mockLinkService) CreateShortLinkBatch(ctx context.Context, items []model.LinkBatchPayload, userID int64) ([]model.LinkBatchResponse, error) {
 	return nil, nil
 }
 
@@ -167,6 +167,8 @@ func TestCreateShortLink(t *testing.T) {
 			req.Header.Set("Content-Type", tt.reqData.contentType)
 
 			w := httptest.NewRecorder()
+
+			req = req.WithContext(context.WithValue(req.Context(), model.JWTUserIDKey, 0))
 
 			handler.CreateShortLink(w, req)
 
