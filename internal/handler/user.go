@@ -174,7 +174,7 @@ func (h *UserHandler) Signout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-        Name:     "access_token",
+        Name:     "session_token",
         Value:    "",
         Path:     "/",
         MaxAge:   -1,
