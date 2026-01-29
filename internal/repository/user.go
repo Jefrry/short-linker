@@ -49,20 +49,14 @@ func (r *UserDataRepository) Create(ctx context.Context, user model.User) (model
 }
 
 func (r *UserDataRepository) GetByEmail(ctx context.Context, email string) (model.User, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return model.User{}, err
-	}
-	defer tx.Rollback()
-
 	const query = `
-		SELECT id, name, email, password, created_at
-		FROM users
-		WHERE email = $1
-	`
+        SELECT id, name, email, password, created_at
+        FROM users
+        WHERE email = $1
+    `
 
 	var user model.User
-	err = tx.QueryRowContext(ctx, query, email).Scan(
+	err := r.db.QueryRowContext(ctx, query, email).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,
@@ -73,20 +67,10 @@ func (r *UserDataRepository) GetByEmail(ctx context.Context, email string) (mode
 		return model.User{}, err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return model.User{}, err
-	}
-
 	return user, nil
 }
 
 func (r *UserDataRepository) GetByID(ctx context.Context, id int64) (model.User, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return model.User{}, err
-	}
-	defer tx.Rollback()
-
 	const query = `
 		SELECT id, name, email, created_at
 		FROM users
@@ -94,17 +78,13 @@ func (r *UserDataRepository) GetByID(ctx context.Context, id int64) (model.User,
 	`
 
 	var user model.User
-	err = tx.QueryRowContext(ctx, query, id).Scan(
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,
 		&user.CreatedAt,
 	)
 	if err != nil {
-		return model.User{}, err
-	}
-
-	if err := tx.Commit(); err != nil {
 		return model.User{}, err
 	}
 
