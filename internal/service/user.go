@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"sync"
+
 	"golang.org/x/crypto/bcrypt"
 
 	"short-linker/internal/model"
@@ -69,4 +72,43 @@ func (s *UserDataService) GetProfile(ctx context.Context, userID int64) (model.U
 
 func (s *UserDataService) GetLinks(ctx context.Context, userID int64) ([]model.LinkItem, error) {
 	return s.linkRepo.GetByUserID(ctx, userID)
+}
+
+func (s *UserDataService) DeleteLinks(ctx context.Context, links []string, userID int64) error {
+	results := make(chan string, len(links))
+
+	var wg = sync.WaitGroup{}
+
+	for _, link := range links {
+		wg.Add(1)
+
+		go func(l string) {
+			defer wg.Done()
+
+			isOwner, err := s.linkRepo.IsOwner(ctx, l, userID)
+			if err != nil || !isOwner {
+				return
+			}
+
+			results <- l
+		}(link)
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	var toDelete []string
+	for link := range results {
+		toDelete = append(toDelete, link)
+	}
+
+	if len(toDelete) > 0 {
+		if err := s.linkRepo.MarkAsDeleted(ctx, toDelete); err != nil {
+			return fmt.Errorf("failed to mark links as deleted: %w", err)
+		}
+	}
+
+	return nil
 }

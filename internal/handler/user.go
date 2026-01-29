@@ -229,3 +229,38 @@ func (h *UserHandler) GetLinks(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statusCode)
 	_ = json.NewEncoder(w).Encode(links)
 }
+
+func (h *UserHandler) DeleteLinks(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+		return
+	}
+
+	if len(body) == 0 {
+		http.Error(w, "empty body", http.StatusBadRequest)
+		return
+	}
+
+	var data []string
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
+		return
+	}
+
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	go h.service.DeleteLinks(context.Background(), data, userID)
+
+	w.WriteHeader(http.StatusAccepted)
+}

@@ -16,6 +16,7 @@ type UserService interface {
 	Signin(ctx context.Context, email, password string) (string, error)
 	GetProfile(ctx context.Context, userID int64) (model.User, error)
 	GetLinks(ctx context.Context, userID int64) ([]model.LinkItem, error)
+	DeleteLinks(ctx context.Context, links []string, userID int64) error
 }
 
 type TokenService interface {

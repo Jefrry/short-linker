@@ -199,3 +199,27 @@ func (r *LinkDataRepository) GetByUserID(ctx context.Context, userID int64) ([]m
 
 	return links, nil
 }
+
+func (r *LinkDataRepository) IsOwner(ctx context.Context, id string, userID int64) (bool, error) {
+	var isOwner bool
+
+	err := r.db.QueryRowContext(ctx, `
+		SELECT EXISTS(SELECT 1 FROM links WHERE id = $1 AND user_id = $2)
+	`, id, userID).Scan(&isOwner)
+
+	if err != nil {
+		fmt.Printf("IsOwner error for id %q, userID %d: %v\n", id, userID, err)
+		return false, err
+	}
+
+	return isOwner, nil
+}
+
+func (r *LinkDataRepository) MarkAsDeleted(ctx context.Context, ids []string) error {
+	_, err := r.db.ExecContext(ctx, "UPDATE links SET deleted = TRUE WHERE id = ANY($1) AND deleted = FALSE", ids)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
