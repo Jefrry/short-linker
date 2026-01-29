@@ -122,23 +122,23 @@ func (r *LinkDataRepository) SaveBatch(ctx context.Context, items []model.LinkIt
 	return nil
 }
 
-func (r *LinkDataRepository) Get(ctx context.Context, id string) (string, error) {
-	var originalURL string
+func (r *LinkDataRepository) Get(ctx context.Context, id string) (model.LinkItem, error) {
+	linkItem := model.LinkItem{}
 
 	if url, ok := r.storage.Get(id); ok && url != "" {
-		originalURL = url
-		return originalURL, nil
+		linkItem.OriginalURL = url
+		return linkItem, nil
 	}
 
-	err := r.db.QueryRowContext(ctx, "SELECT original_url FROM links WHERE id = $1", id).Scan(&originalURL)
+	err := r.db.QueryRowContext(ctx, "SELECT id, original_url, user_id, deleted FROM links WHERE id = $1", id).Scan(&linkItem.ID, &linkItem.OriginalURL, &linkItem.UserID, &linkItem.Deleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", fmt.Errorf("link not found")
+			return model.LinkItem{}, fmt.Errorf("link not found")
 		}
-		return "", err
+		return model.LinkItem{}, err
 	}
 
-	return originalURL, nil
+	return linkItem, nil
 }
 
 func (r *LinkDataRepository) Exists(ctx context.Context, id string) bool {

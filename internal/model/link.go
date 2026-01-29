@@ -24,6 +24,7 @@ type LinkItem struct {
 	ID          string
 	OriginalURL string
 	UserID      int64
+	Deleted     bool
 }
 
 var ErrOriginalURLExists = errors.New("original url already exists")

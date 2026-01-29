@@ -9,7 +9,7 @@ import (
 type LinkRepository interface {
 	Save(ctx context.Context, item model.LinkItem) (string, error)
 	SaveBatch(ctx context.Context, item []model.LinkItem) error
-	Get(ctx context.Context, id string) (string, error)
+	Get(ctx context.Context, id string) (model.LinkItem, error)
 	Exists(ctx context.Context, id string) bool
 	GetByUserID(ctx context.Context, userID int64) ([]model.LinkItem, error)
 	IsOwner(ctx context.Context, id string, userID int64) (bool, error)

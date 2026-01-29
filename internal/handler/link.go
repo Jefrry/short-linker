@@ -183,9 +183,14 @@ func (h *LinkHandler) RedirectPage(w http.ResponseWriter, r *http.Request, id st
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
-	originalURL, err := h.service.GetOriginalURL(ctx, id)
+	originalURL, deleted, err := h.service.GetOriginalURL(ctx, id)
 	if err != nil {
 		http.Error(w, "Link not found", http.StatusNotFound)
+		return
+	}
+
+	if deleted {
+		w.WriteHeader(http.StatusGone)
 		return
 	}
 

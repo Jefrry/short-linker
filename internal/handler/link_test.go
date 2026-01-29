@@ -21,6 +21,7 @@ import (
 type mockLinkService struct {
 	createResult string
 	getResult    string
+	deleted      bool
 
 	createErr error
 	getErr    error
@@ -30,8 +31,8 @@ func (m *mockLinkService) CreateShortLink(ctx context.Context, originalURL strin
 	return m.createResult, m.createErr
 }
 
-func (m *mockLinkService) GetOriginalURL(ctx context.Context, id string) (string, error) {
-	return m.getResult, m.getErr
+func (m *mockLinkService) GetOriginalURL(ctx context.Context, id string) (string, bool, error) {
+	return m.getResult, m.deleted, m.getErr
 }
 
 func (m *mockLinkService) CreateShortLinkBatch(ctx context.Context, items []model.LinkBatchPayload, userID int64) ([]model.LinkBatchResponse, error) {
@@ -208,11 +209,12 @@ func TestRedirectPage(t *testing.T) {
 	randomID := "abc"
 	host := "http://localhost/"
 	tests := []struct {
-		name          string
-		reqData       reqData
-		respData      respData
-		serviceResult string
-		serviceErr    error
+		name           string
+		reqData        reqData
+		respData       respData
+		serviceResult  string
+		serviceDeleted bool
+		serviceErr     error
 	}{
 		{
 			name: "Success request",
@@ -223,7 +225,8 @@ func TestRedirectPage(t *testing.T) {
 			respData: respData{
 				statusCode: http.StatusTemporaryRedirect,
 			},
-			serviceResult: host + randomID,
+			serviceResult:  host + randomID,
+			serviceDeleted: false,
 		},
 		{
 			name: "Invalid method",
@@ -234,7 +237,8 @@ func TestRedirectPage(t *testing.T) {
 			respData: respData{
 				statusCode: http.StatusMethodNotAllowed,
 			},
-			serviceResult: "",
+			serviceResult:  "",
+			serviceDeleted: false,
 		},
 		{
 			name: "ID not found",
@@ -245,8 +249,21 @@ func TestRedirectPage(t *testing.T) {
 			respData: respData{
 				statusCode: http.StatusNotFound,
 			},
-			serviceResult: "",
-			serviceErr:    errors.New("link not found"),
+			serviceResult:  "",
+			serviceDeleted: false,
+			serviceErr:     errors.New("link not found"),
+		},
+		{
+			name: "ID deleted",
+			reqData: reqData{
+				method: http.MethodGet,
+				id:     randomID,
+			},
+			respData: respData{
+				statusCode: http.StatusGone,
+			},
+			serviceResult:  host + randomID,
+			serviceDeleted: true,
 		},
 	}
 
@@ -254,13 +271,13 @@ func TestRedirectPage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			linkService := &mockLinkService{getResult: tt.serviceResult, getErr: tt.serviceErr}
+			linkService := &mockLinkService{getResult: tt.serviceResult, deleted: tt.serviceDeleted, getErr: tt.serviceErr}
 			handler := handler.NewLinkHandler(logger, linkService)
 
 			req := httptest.NewRequest(tt.reqData.method, "/"+tt.reqData.id, nil)
 			w := httptest.NewRecorder()
 
-			handler.RedirectPage(w, req, randomID)
+			handler.RedirectPage(w, req, tt.reqData.id)
 
 			resp := w.Result()
 			defer resp.Body.Close()

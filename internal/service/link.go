@@ -82,18 +82,18 @@ func (s *LinkDataService) CreateShortLinkBatch(ctx context.Context, items []mode
 	return resItems, nil
 }
 
-func (s *LinkDataService) GetOriginalURL(ctx context.Context, id string) (string, error) {
-	originalURL, err := s.repo.Get(ctx, id)
+func (s *LinkDataService) GetOriginalURL(ctx context.Context, id string) (string, bool, error) {
+	linkItem, err := s.repo.Get(ctx, id)
 	if err != nil {
-		return "", fmt.Errorf("failed to retrieve link: %w", err)
+		return "", false, fmt.Errorf("failed to retrieve link: %w", err)
 	}
-	return originalURL, nil
+	return linkItem.OriginalURL, linkItem.Deleted, nil
 }
 
 func (s *LinkDataService) generateUniqueID(ctx context.Context) (string, error) {
 	retries := 0
 	const maxRetries = 5
-	
+
 	for {
 		if retries >= maxRetries {
 			return "", fmt.Errorf("failed to generate unique short link after %d attempts", maxRetries)
