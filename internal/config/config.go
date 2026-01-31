@@ -1,5 +1,9 @@
 package config
 
+import (
+	"log"
+)
+
 type Config struct {
 	Address      string
 	BaseShortURL string
@@ -29,6 +33,14 @@ func GetConfig() *Config {
 	currentJWTSecret := flags.JWTSecret
 	if envs.JWTSecret != "" {
 		currentJWTSecret = envs.JWTSecret
+	}
+
+	if currentAdress == "" {
+		log.Fatal("Address is required")
+	}
+
+	if currentDatabaseDsn == "" {
+		log.Fatal("DatabaseDsn is required")
 	}
 
 	return &Config{

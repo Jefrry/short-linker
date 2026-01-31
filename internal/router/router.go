@@ -1,11 +1,12 @@
 package router
 
 import (
-	"github.com/go-chi/chi/v5"
-	"go.uber.org/zap"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"short-linker/internal/handler"
+	"short-linker/internal/logger"
 	"short-linker/internal/middleware"
 )
 
@@ -27,9 +28,9 @@ func NewRouter(JWTSecret string, pingHandler *handler.PingHandler, linkHandler *
 	}
 }
 
-func (r *Router) SetupRoutes(logger *zap.Logger) http.Handler {
+func (r *Router) SetupRoutes(l logger.Logger) http.Handler {
 	router := chi.NewRouter()
-	router.Use(middleware.LoggerMiddleware(logger))
+	router.Use(middleware.LoggerMiddleware(l))
 	// I know, this is an overengineered, but I wanted to learn and practice it
 	router.Use(middleware.GzipMiddleware)
 

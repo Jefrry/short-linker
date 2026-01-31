@@ -3,7 +3,8 @@ package middleware
 import (
 	"net/http"
 	"time"
-	"go.uber.org/zap"
+
+	"short-linker/internal/logger"
 )
 
 func (rw *responseWriter) WriteHeader(code int) {
@@ -17,7 +18,7 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
-func LoggerMiddleware(logger *zap.Logger) func(next http.Handler) http.Handler {
+func LoggerMiddleware(l logger.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -26,12 +27,12 @@ func LoggerMiddleware(logger *zap.Logger) func(next http.Handler) http.Handler {
 
 			next.ServeHTTP(rw, r)
 
-			logger.Info("HTTP Request",
-				zap.String("URI", r.RequestURI),
-				zap.String("method", r.Method),
-				zap.Duration("duration", time.Since(start)),
-				zap.Int("status", rw.statusCode),
-				zap.Int("size", rw.size),
+			l.Info("HTTP Request",
+				logger.String("URI", r.RequestURI),
+				logger.String("method", r.Method),
+				logger.Duration("duration", time.Since(start)),
+				logger.Int("status", rw.statusCode),
+				logger.Int("size", rw.size),
 			)
 		})
 	}

@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 	"net/http"
-	"go.uber.org/zap"
 
 	"short-linker/internal/app"
 	"short-linker/internal/config"
+	"short-linker/internal/logger"
 )
 
 func main() {
@@ -24,7 +24,9 @@ func main() {
 		_ = a.Logger.Sync()
 	}()
 
+	a.Logger.Info("app is running", logger.String("address", cfg.Address))
+
 	if err := http.ListenAndServe(cfg.Address, a.Router); err != nil {
-		a.Logger.Fatal("server error", zap.Error(err))
+		a.Logger.Fatal("server error", logger.Error(err))
 	}
 }

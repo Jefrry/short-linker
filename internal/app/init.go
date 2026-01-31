@@ -9,10 +9,10 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"go.uber.org/zap"
 
 	"short-linker/internal/config"
 	"short-linker/internal/handler"
+	"short-linker/internal/logger"
 	"short-linker/internal/repository"
 	"short-linker/internal/router"
 	"short-linker/internal/service"
@@ -21,13 +21,13 @@ import (
 
 type App struct {
 	Cfg    *config.Config
-	Logger *zap.Logger
+	Logger logger.Logger
 	DB     *sql.DB
 	Router http.Handler
 }
 
 func NewApp(cfg *config.Config) (*App, error) {
-	logger, err := initLogger()
+	l, err := initLogger()
 	if err != nil {
 		return nil, fmt.Errorf("init logger: %w", err)
 	}
@@ -36,14 +36,17 @@ func NewApp(cfg *config.Config) (*App, error) {
 	if cfg.DatabaseDsn != "" {
 		db, err = initDB(cfg.DatabaseDsn)
 		if err != nil {
-			logger.Error("failed to initialize database", zap.Error(err))
+			l.Error("failed to initialize database", logger.Error(err))
 			return nil, fmt.Errorf("init db: %w", err)
 		}
+		l.Info("database connected successfully")
 
 		if err = initMigration(cfg.DatabaseDsn); err != nil {
-			logger.Error("failed to run database migrations", zap.Error(err))
+			l.Error("failed to run database migrations", logger.Error(err))
 			return nil, fmt.Errorf("init migrations: %w", err)
 		}
+
+		l.Info("database migrations applied successfully")
 	}
 
 	memStorage := storage.NewMemory()
@@ -55,22 +58,25 @@ func NewApp(cfg *config.Config) (*App, error) {
 	userService := service.NewUserService(service.NewTokenService(cfg.JWTSecret), userRepo, linkRepo)
 
 	pingHandler := handler.NewPingHandler(db)
-	linkHandler := handler.NewLinkHandler(logger, linkService)
-	userHandler := handler.NewUserHandler(logger, userService)
+	linkHandler := handler.NewLinkHandler(l, linkService)
+	userHandler := handler.NewUserHandler(l, userService)
 
-	r := router.NewRouter(cfg.JWTSecret, pingHandler, linkHandler, userHandler).SetupRoutes(logger)
+	r := router.NewRouter(cfg.JWTSecret, pingHandler, linkHandler, userHandler).SetupRoutes(l)
 
 	return &App{
 		Cfg:    cfg,
-		Logger: logger,
+		Logger: l,
 		DB:     db,
 		Router: r,
 	}, nil
 }
 
-
-func initLogger() (*zap.Logger, error) {
-	return zap.NewProduction()
+func initLogger() (logger.Logger, error) {
+	z, err := logger.NewProduction()
+	if err != nil {
+		return nil, err
+	}
+	return logger.NewLogger(z), nil
 }
 
 func initDB(dsn string) (*sql.DB, error) {

@@ -3,12 +3,12 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"go.uber.org/zap"
 	"io"
 	"mime"
 	"net/http"
 	"time"
 
+	"short-linker/internal/logger"
 	"short-linker/internal/middleware"
 	"short-linker/internal/model"
 	"short-linker/internal/service"
@@ -16,13 +16,13 @@ import (
 
 type UserHandler struct {
 	service service.UserService
-	logger  *zap.Logger
+	logger  logger.Logger
 }
 
-func NewUserHandler(logger *zap.Logger, service service.UserService) *UserHandler {
+func NewUserHandler(l logger.Logger, service service.UserService) *UserHandler {
 	return &UserHandler{
 		service: service,
-		logger:  logger,
+		logger:  l,
 	}
 }
 
@@ -69,7 +69,7 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	res, err := h.service.Signup(ctx, data)
 	if err != nil {
 		http.Error(w, "Failed to signup user", http.StatusInternalServerError)
-		h.logger.Error("Signup error", zap.Error(err))
+		h.logger.Error("Signup error", logger.Error(err))
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *UserHandler) Signin(w http.ResponseWriter, r *http.Request) {
 	token, err := h.service.Signin(ctx, data.Email, data.Password)
 	if err != nil {
 		http.Error(w, "Failed to signin user", http.StatusInternalServerError)
-		h.logger.Error("Signin error", zap.Error(err))
+		h.logger.Error("Signin error", logger.Error(err))
 		return
 	}
 
@@ -164,7 +164,7 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	user, err := h.service.GetProfile(ctx, userID)
 	if err != nil {
 		http.Error(w, "Failed to get user profile", http.StatusInternalServerError)
-		h.logger.Error("GetProfile error", zap.Error(err))
+		h.logger.Error("GetProfile error", logger.Error(err))
 		return
 	}
 
@@ -214,7 +214,7 @@ func (h *UserHandler) GetLinks(w http.ResponseWriter, r *http.Request) {
 	links, err := h.service.GetLinks(ctx, userID)
 	if err != nil {
 		http.Error(w, "Failed to get user links", http.StatusInternalServerError)
-		h.logger.Error("GetLinks error", zap.Error(err))
+		h.logger.Error("GetLinks error", logger.Error(err))
 		return
 	}
 
