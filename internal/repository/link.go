@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"short-linker/internal/model"
 	"short-linker/internal/storage"
@@ -68,8 +69,6 @@ func (r *LinkDataRepository) Save(ctx context.Context, item model.LinkItem) (str
 	return item.ID, nil
 }
 
-// TODO: optimize function to avoid concatenating a huge query string,
-// use fixed size slice when building values
 func (r *LinkDataRepository) SaveBatch(ctx context.Context, items []model.LinkItem) error {
 	if len(items) == 0 {
 		return fmt.Errorf("no items to save")
@@ -81,17 +80,17 @@ func (r *LinkDataRepository) SaveBatch(ctx context.Context, items []model.LinkIt
 	}
 	defer tx.Rollback()
 
-	query := "INSERT INTO links (id, original_url, user_id) VALUES "
-	values := []any{}
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString("INSERT INTO links (id, original_url, user_id) VALUES ")
+	values := make([]any, 0, len(items)*3)
 
 	for i, item := range items {
 		if i > 0 {
-			query += ","
+			queryBuilder.WriteString(",")
 		}
 
 		n := i*3 + 1
-
-		query += fmt.Sprintf("($%d, $%d, $%d)", n, n+1, n+2)
+		fmt.Fprintf(&queryBuilder, "($%d, $%d, $%d)", n, n+1, n+2)
 
 		var userID any
 		if item.UserID == 0 {
@@ -103,11 +102,10 @@ func (r *LinkDataRepository) SaveBatch(ctx context.Context, items []model.LinkIt
 		values = append(values, item.ID, item.OriginalURL, userID)
 	}
 
-	query += " ON CONFLICT (original_url) DO NOTHING"
+	queryBuilder.WriteString(" ON CONFLICT (original_url) DO NOTHING")
 
-	_, err = tx.ExecContext(ctx, query, values...)
+	_, err = tx.ExecContext(ctx, queryBuilder.String(), values...)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
