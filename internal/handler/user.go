@@ -11,6 +11,7 @@ import (
 	"short-linker/internal/model"
 	"short-linker/internal/service"
 	"short-linker/internal/utils"
+	"short-linker/pkg"
 )
 
 type UserHandler struct {
@@ -27,7 +28,6 @@ func NewUserHandler(l logger.Logger, service service.UserService, u utils.Handle
 	}
 }
 
-// TODO: add validation
 func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	var data model.SignupPayload
 	if !h.utils.ReadJSON(w, r, &data) {
@@ -36,6 +36,15 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	if data.Name == "" || data.Email == "" || data.Password == "" {
 		http.Error(w, "missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	if !pkg.ValidateEmail(data.Email) {
+		http.Error(w, "invalid email format", http.StatusBadRequest)
+		return
+	}
+	if ok, msg := pkg.ValidatePassword(data.Password); !ok {
+		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
@@ -60,6 +69,15 @@ func (h *UserHandler) Signin(w http.ResponseWriter, r *http.Request) {
 
 	if data.Email == "" || data.Password == "" {
 		http.Error(w, "missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	if !pkg.ValidateEmail(data.Email) {
+		http.Error(w, "invalid email format", http.StatusBadRequest)
+		return
+	}
+	if len(data.Password) > pkg.MaxPasswordLength {
+		http.Error(w, "invalid credentials", http.StatusBadRequest)
 		return
 	}
 
