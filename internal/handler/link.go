@@ -27,6 +27,18 @@ func NewLinkHandler(l logger.Logger, service service.LinkService, u utils.Handle
 	}
 }
 
+// CreateShortLink godoc
+// @Summary Create a short link
+// @Description Create a new short link from a long URL
+// @Tags links
+// @Accept json
+// @Produce json
+// @Param link body model.LinkPayload true "Link payload"
+// @Success 201 {object} model.LinkResponse "Short link created"
+// @Failure 400 {string} string "Bad request"
+// @Failure 409 {object} model.LinkResponse "URL already exists"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/shorten [post]
 func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 	var data model.LinkPayload
 	if !h.utils.ReadJSON(w, r, &data) {
@@ -48,6 +60,17 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 	h.utils.WriteJSON(w, http.StatusCreated, model.LinkResponse{ShortURL: shortLink})
 }
 
+// CreateShortLinkBatch godoc
+// @Summary Create multiple short links
+// @Description Create short links for a batch of URLs
+// @Tags links
+// @Accept json
+// @Produce json
+// @Param links body []model.LinkBatchPayload true "Batch of links"
+// @Success 201 {array} model.LinkBatchResponse "Short links created"
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/shorten/batch [post]
 func (h *LinkHandler) CreateShortLinkBatch(w http.ResponseWriter, r *http.Request) {
 	var data []model.LinkBatchPayload
 	if !h.utils.ReadJSON(w, r, &data) {
@@ -65,7 +88,20 @@ func (h *LinkHandler) CreateShortLinkBatch(w http.ResponseWriter, r *http.Reques
 	h.utils.WriteJSON(w, http.StatusCreated, res)
 }
 
-// Deprecated: use CreateShortLink with Content-Type: application/json instead
+// CreateShortLinkPlain godoc
+// @Summary Create a short link (plain text)
+// @Description Create a new short link from a plain text URL body
+// @Tags links
+// @Accept plain
+// @Produce plain
+// @Param url body string true "Original URL"
+// @Success 201 {string} string "Short URL"
+// @Failure 400 {string} string "Bad request"
+// @Failure 409 {string} string "URL already exists"
+// @Failure 415 {string} string "Unsupported media type"
+// @Failure 500 {string} string "Internal server error"
+// @Deprecated
+// @Router / [post]
 func (h *LinkHandler) CreateShortLinkPlain(w http.ResponseWriter, r *http.Request) {
 	ct, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if ct != "text/plain" {
@@ -97,6 +133,15 @@ func (h *LinkHandler) CreateShortLinkPlain(w http.ResponseWriter, r *http.Reques
 	h.utils.WritePlain(w, http.StatusCreated, shortLink)
 }
 
+// RedirectPage godoc
+// @Summary Redirect to original URL
+// @Description Redirect to the original URL by short link ID
+// @Tags links
+// @Param id path string true "Short link ID"
+// @Success 307 "Temporary redirect to original URL"
+// @Failure 404 {string} string "Link not found"
+// @Failure 410 {string} string "Link has been deleted"
+// @Router /{id} [get]
 func (h *LinkHandler) RedirectPage(w http.ResponseWriter, r *http.Request, id string) {
 	originalURL, deleted, err := h.service.GetOriginalURL(r.Context(), id)
 	if err != nil {

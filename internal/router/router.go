@@ -6,7 +6,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 
+	_ "short-linker/docs"
 	"short-linker/internal/handler"
 	"short-linker/internal/logger"
 	"short-linker/internal/middleware"
@@ -42,6 +44,8 @@ func (r *Router) SetupRoutes(l logger.Logger) http.Handler {
 	r.baseRoutes()
 	r.linkRoutes()
 	r.userRoutes()
+
+	router.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	return router
 }

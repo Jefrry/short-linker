@@ -1,0 +1,385 @@
+basePath: /
+definitions:
+  model.LinkBatchPayload:
+    properties:
+      correlation_id:
+        type: string
+      original_url:
+        type: string
+    type: object
+  model.LinkBatchResponse:
+    properties:
+      correlation_id:
+        type: string
+      short_url:
+        type: string
+    type: object
+  model.LinkItem:
+    properties:
+      deleted:
+        type: boolean
+      id:
+        type: string
+      originalURL:
+        type: string
+      userID:
+        format: int64
+        type: integer
+    type: object
+  model.LinkPayload:
+    properties:
+      url:
+        type: string
+    type: object
+  model.LinkResponse:
+    properties:
+      result:
+        type: string
+    type: object
+  model.SignupPayload:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+  model.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: URL shortener service with user authentication
+  title: Short Linker API
+  version: "1.0"
+paths:
+  /:
+    post:
+      consumes:
+      - text/plain
+      deprecated: true
+      description: Create a new short link from a plain text URL body
+      parameters:
+      - description: Original URL
+        in: body
+        name: url
+        required: true
+        schema:
+          type: string
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: Short URL
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "409":
+          description: URL already exists
+          schema:
+            type: string
+        "415":
+          description: Unsupported media type
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Create a short link (plain text)
+      tags:
+      - links
+  /{id}:
+    get:
+      description: Redirect to the original URL by short link ID
+      parameters:
+      - description: Short link ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "307":
+          description: Temporary redirect to original URL
+        "404":
+          description: Link not found
+          schema:
+            type: string
+        "410":
+          description: Link has been deleted
+          schema:
+            type: string
+      summary: Redirect to original URL
+      tags:
+      - links
+  /api/shorten:
+    post:
+      consumes:
+      - application/json
+      description: Create a new short link from a long URL
+      parameters:
+      - description: Link payload
+        in: body
+        name: link
+        required: true
+        schema:
+          $ref: '#/definitions/model.LinkPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Short link created
+          schema:
+            $ref: '#/definitions/model.LinkResponse'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "409":
+          description: URL already exists
+          schema:
+            $ref: '#/definitions/model.LinkResponse'
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Create a short link
+      tags:
+      - links
+  /api/shorten/batch:
+    post:
+      consumes:
+      - application/json
+      description: Create short links for a batch of URLs
+      parameters:
+      - description: Batch of links
+        in: body
+        name: links
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/model.LinkBatchPayload'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Short links created
+          schema:
+            items:
+              $ref: '#/definitions/model.LinkBatchResponse'
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Create multiple short links
+      tags:
+      - links
+  /api/user/profile:
+    get:
+      description: Get the authenticated user's profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile
+          schema:
+            $ref: '#/definitions/model.User'
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - users
+  /api/user/signin:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT token
+      parameters:
+      - description: User credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            password:
+              type: string
+          type: object
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Sign in a user
+      tags:
+      - users
+  /api/user/signout:
+    post:
+      description: Log out the current user and clear session
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logged out
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Sign out a user
+      tags:
+      - users
+  /api/user/signup:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account
+      parameters:
+      - description: User signup data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.SignupPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Register a new user
+      tags:
+      - users
+  /api/user/urls:
+    delete:
+      consumes:
+      - application/json
+      description: Delete multiple short links by their IDs (async operation)
+      parameters:
+      - description: Array of short link IDs to delete
+        in: body
+        name: ids
+        required: true
+        schema:
+          items:
+            type: string
+          type: array
+      responses:
+        "202":
+          description: Accepted - deletion in progress
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Delete user's links
+      tags:
+      - users
+    get:
+      description: Get all short links created by the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of links
+          schema:
+            items:
+              $ref: '#/definitions/model.LinkItem'
+            type: array
+        "204":
+          description: No content
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get user's links
+      tags:
+      - users
+  /ping:
+    get:
+      description: Check if the server and database are running
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: pong
+          schema:
+            type: string
+        "500":
+          description: Database connection error
+          schema:
+            type: string
+      summary: Health check
+      tags:
+      - health
+securityDefinitions:
+  BearerAuth:
+    description: 'JWT token for authentication (format: Bearer <token>)'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

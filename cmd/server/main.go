@@ -1,5 +1,7 @@
 package main
 
+//go:generate swag init -g cmd/server/main.go --parseInternal -d ../../ -o ../../docs
+
 import (
 	"log"
 	"net/http"
@@ -8,6 +10,18 @@ import (
 	"short-linker/internal/config"
 	"short-linker/internal/logger"
 )
+
+// @title Short Linker API
+// @version 1.0
+// @description URL shortener service with user authentication
+
+// @host localhost:8080
+// @BasePath /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description JWT token for authentication (format: Bearer <token>)
 
 func main() {
 	cfg := config.GetConfig()
