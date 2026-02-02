@@ -221,5 +221,9 @@ func (r *LinkDataRepository) MarkAsDeleted(ctx context.Context, ids []string) er
 		return err
 	}
 
+	for _, id := range ids {
+		r.storage.Delete(id)
+	}
+
 	return nil
 }

@@ -37,9 +37,9 @@ func (s *shard) Get(key string) (string, bool) {
 	defer s.mu.RUnlock()
 
 	if exp, ok := s.ttl[key]; ok && time.Now().After(exp) {
-			delete(s.data, key)
-			delete(s.ttl, key)
-			return "", false
+		delete(s.data, key)
+		delete(s.ttl, key)
+		return "", false
 	}
 
 	v, ok := s.data[key]
@@ -60,6 +60,14 @@ func (s *shard) Exists(key string) bool {
 
 	_, ok := s.data[key]
 	return ok
+}
+
+func (s *shard) Delete(key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.data, key)
+	delete(s.ttl, key)
 }
 
 func (m *Memory) Get(key string) (string, bool) {
@@ -83,6 +91,12 @@ func (m *Memory) Set(key, value string, ttl time.Duration) error {
 func (m *Memory) Exists(key string) bool {
 	shardIndex := m.getShardIndex(key)
 	return m.shards[shardIndex].Exists(key)
+}
+
+func (m *Memory) Delete(key string) error {
+	shardIndex := m.getShardIndex(key)
+	m.shards[shardIndex].Delete(key)
+	return nil
 }
 
 // Temp memory before db implementation
