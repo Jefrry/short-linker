@@ -14,7 +14,9 @@ import (
 	"go.uber.org/zap"
 
 	"short-linker/internal/handler"
+	"short-linker/internal/logger"
 	"short-linker/internal/model"
+	"short-linker/internal/utils"
 )
 
 // Maybe I should move it to service
@@ -91,21 +93,6 @@ func TestCreateShortLink(t *testing.T) {
 			needTestBody:  true,
 		},
 		{
-			name: "Invalid method",
-			reqData: reqData{
-				method:      http.MethodGet,
-				contentType: "application/json",
-				body:        "http://example.com",
-			},
-			respData: respData{
-				body:        "",
-				statusCode:  http.StatusMethodNotAllowed,
-				contentType: "text/plain; charset=utf-8",
-			},
-			serviceResult: "",
-			needTestBody:  false,
-		},
-		{
 			name: "Invalid content type",
 			reqData: reqData{
 				method:      http.MethodPost,
@@ -151,12 +138,13 @@ func TestCreateShortLink(t *testing.T) {
 		},
 	}
 
-	logger := zap.NewNop()
+	logger := logger.NewLogger(zap.NewNop())
+	handlerUtils := utils.NewHandlerUtils()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			linkService := &mockLinkService{createResult: tt.serviceResult, createErr: tt.serviceErr}
-			handler := handler.NewLinkHandler(logger, linkService)
+			handler := handler.NewLinkHandler(logger, linkService, handlerUtils)
 
 			var bodyReader io.Reader
 			if tt.reqData.body != "" {
@@ -229,18 +217,6 @@ func TestRedirectPage(t *testing.T) {
 			serviceDeleted: false,
 		},
 		{
-			name: "Invalid method",
-			reqData: reqData{
-				method: http.MethodPost, // Do I need to test other methods?
-				id:     randomID,
-			},
-			respData: respData{
-				statusCode: http.StatusMethodNotAllowed,
-			},
-			serviceResult:  "",
-			serviceDeleted: false,
-		},
-		{
 			name: "ID not found",
 			reqData: reqData{
 				method: http.MethodGet,
@@ -267,12 +243,13 @@ func TestRedirectPage(t *testing.T) {
 		},
 	}
 
-	logger := zap.NewNop()
+	logger := logger.NewLogger(zap.NewNop())
+	handlerUtils := utils.NewHandlerUtils()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			linkService := &mockLinkService{getResult: tt.serviceResult, deleted: tt.serviceDeleted, getErr: tt.serviceErr}
-			handler := handler.NewLinkHandler(logger, linkService)
+			handler := handler.NewLinkHandler(logger, linkService, handlerUtils)
 
 			req := httptest.NewRequest(tt.reqData.method, "/"+tt.reqData.id, nil)
 			w := httptest.NewRecorder()

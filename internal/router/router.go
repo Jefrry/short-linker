@@ -2,8 +2,10 @@ package router
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 
 	"short-linker/internal/handler"
 	"short-linker/internal/logger"
@@ -31,6 +33,7 @@ func NewRouter(JWTSecret string, pingHandler *handler.PingHandler, linkHandler *
 func (r *Router) SetupRoutes(l logger.Logger) http.Handler {
 	router := chi.NewRouter()
 	router.Use(middleware.LoggerMiddleware(l))
+	router.Use(chiMiddleware.Timeout(3 * time.Second))
 	// I know, this is an overengineered, but I wanted to learn and practice it
 	router.Use(middleware.GzipMiddleware)
 

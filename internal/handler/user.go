@@ -4,56 +4,33 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"mime"
 	"net/http"
-	"time"
 
 	"short-linker/internal/logger"
 	"short-linker/internal/middleware"
 	"short-linker/internal/model"
 	"short-linker/internal/service"
+	"short-linker/internal/utils"
 )
 
 type UserHandler struct {
 	service service.UserService
 	logger  logger.Logger
+	utils   utils.HandlerUtils
 }
 
-func NewUserHandler(l logger.Logger, service service.UserService) *UserHandler {
+func NewUserHandler(l logger.Logger, service service.UserService, u utils.HandlerUtils) *UserHandler {
 	return &UserHandler{
 		service: service,
 		logger:  l,
+		utils:   u,
 	}
 }
 
 // TODO: add validation
 func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	ct, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if ct != "application/json" {
-		http.Error(w, "Unsupported Media Type", http.StatusUnsupportedMediaType)
-		return
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-		return
-	}
-
-	if len(body) == 0 {
-		http.Error(w, "empty body", http.StatusBadRequest)
-		return
-	}
-
 	var data model.SignupPayload
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
+	if !h.utils.ReadJSON(w, r, &data) {
 		return
 	}
 
@@ -62,53 +39,22 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-
-	res, err := h.service.Signup(ctx, data)
+	res, err := h.service.Signup(r.Context(), data)
 	if err != nil {
 		http.Error(w, "Failed to signup user", http.StatusInternalServerError)
 		h.logger.Error("Signup error", logger.Error(err))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(res)
+	h.utils.WriteJSON(w, http.StatusCreated, res)
 }
 
 func (h *UserHandler) Signin(w http.ResponseWriter, r *http.Request) {
-	// TODO: replace dupicate code with middleware or helper function
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	ct, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if ct != "application/json" {
-		http.Error(w, "Unsupported Media Type", http.StatusUnsupportedMediaType)
-		return
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-		return
-	}
-
-	if len(body) == 0 {
-		http.Error(w, "empty body", http.StatusBadRequest)
-		return
-	}
-
 	var data struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
+	if !h.utils.ReadJSON(w, r, &data) {
 		return
 	}
 
@@ -117,125 +63,56 @@ func (h *UserHandler) Signin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-
-	token, err := h.service.Signin(ctx, data.Email, data.Password)
+	token, err := h.service.Signin(r.Context(), data.Email, data.Password)
 	if err != nil {
 		http.Error(w, "Failed to signin user", http.StatusInternalServerError)
 		h.logger.Error("Signin error", logger.Error(err))
 		return
 	}
 
-	cookie := &http.Cookie{
-		Name:     "session_token",
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false, // CAUTION: change to true in production
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(24 * time.Hour),
-		MaxAge:   24 * 60 * 60,
-	}
-	http.SetCookie(w, cookie)
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(token))
+	h.utils.SetSessionCookie(w, token)
+	h.utils.WritePlain(w, http.StatusOK, token)
 }
 
 func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+	userID, _ := middleware.GetUserID(r.Context())
 
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	ctx := r.Context()
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-
-	user, err := h.service.GetProfile(ctx, userID)
+	user, err := h.service.GetProfile(r.Context(), userID)
 	if err != nil {
 		http.Error(w, "Failed to get user profile", http.StatusInternalServerError)
 		h.logger.Error("GetProfile error", logger.Error(err))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(user)
+	h.utils.WriteJSON(w, http.StatusOK, user)
 }
 
 func (h *UserHandler) Signout(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   false, // CAUTION: change to true in production
-		SameSite: http.SameSiteLaxMode,
-	})
-
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	h.utils.RemoveSessionCookie(w)
+	h.utils.WriteJSON(w, http.StatusOK, map[string]any{
 		"message": "logged out",
 	})
 }
 
 func (h *UserHandler) GetLinks(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+	userID, _ := middleware.GetUserID(r.Context())
 
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	ctx := r.Context()
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-
-	links, err := h.service.GetLinks(ctx, userID)
+	links, err := h.service.GetLinks(r.Context(), userID)
 	if err != nil {
 		http.Error(w, "Failed to get user links", http.StatusInternalServerError)
 		h.logger.Error("GetLinks error", logger.Error(err))
 		return
 	}
 
-	var statusCode int
+	statusCode := http.StatusOK
 	if len(links) == 0 {
 		statusCode = http.StatusNoContent
-	} else {
-		statusCode = http.StatusOK
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(links)
+	h.utils.WriteJSON(w, statusCode, links)
 }
 
 func (h *UserHandler) DeleteLinks(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
@@ -254,11 +131,7 @@ func (h *UserHandler) DeleteLinks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+	userID, _ := middleware.GetUserID(r.Context())
 
 	go h.service.DeleteLinks(context.Background(), data, userID)
 

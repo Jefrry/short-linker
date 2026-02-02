@@ -17,6 +17,7 @@ import (
 	"short-linker/internal/router"
 	"short-linker/internal/service"
 	"short-linker/internal/storage"
+	"short-linker/internal/utils"
 )
 
 type App struct {
@@ -57,9 +58,11 @@ func NewApp(cfg *config.Config) (*App, error) {
 	linkService := service.NewLinkService(linkRepo, cfg.BaseShortURL)
 	userService := service.NewUserService(service.NewTokenService(cfg.JWTSecret), userRepo, linkRepo)
 
-	pingHandler := handler.NewPingHandler(db)
-	linkHandler := handler.NewLinkHandler(l, linkService)
-	userHandler := handler.NewUserHandler(l, userService)
+	handlerUtils := utils.NewHandlerUtils()
+
+	pingHandler := handler.NewPingHandler(db, handlerUtils)
+	linkHandler := handler.NewLinkHandler(l, linkService, handlerUtils)
+	userHandler := handler.NewUserHandler(l, userService, handlerUtils)
 
 	r := router.NewRouter(cfg.JWTSecret, pingHandler, linkHandler, userHandler).SetupRoutes(l)
 
