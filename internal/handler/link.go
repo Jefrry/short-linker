@@ -48,7 +48,6 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 	h.utils.WriteJSON(w, http.StatusCreated, model.LinkResponse{ShortURL: shortLink})
 }
 
-// TODO: add tests
 func (h *LinkHandler) CreateShortLinkBatch(w http.ResponseWriter, r *http.Request) {
 	var data []model.LinkBatchPayload
 	if !h.utils.ReadJSON(w, r, &data) {

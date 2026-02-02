@@ -24,9 +24,11 @@ type mockLinkService struct {
 	createResult string
 	getResult    string
 	deleted      bool
+	batchResult  []model.LinkBatchResponse
 
 	createErr error
 	getErr    error
+	batchErr  error
 }
 
 func (m *mockLinkService) CreateShortLink(ctx context.Context, originalURL string, userID int64) (string, error) {
@@ -38,7 +40,7 @@ func (m *mockLinkService) GetOriginalURL(ctx context.Context, id string) (string
 }
 
 func (m *mockLinkService) CreateShortLinkBatch(ctx context.Context, items []model.LinkBatchPayload, userID int64) ([]model.LinkBatchResponse, error) {
-	return nil, nil
+	return m.batchResult, m.batchErr
 }
 
 func TestCreateShortLink(t *testing.T) {
@@ -136,6 +138,22 @@ func TestCreateShortLink(t *testing.T) {
 			serviceResult: "",
 			needTestBody:  false,
 		},
+		{
+			name: "URL already exists",
+			reqData: reqData{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				body:        "http://example.com",
+			},
+			respData: respData{
+				body:        host + "existing",
+				statusCode:  http.StatusConflict,
+				contentType: "application/json",
+			},
+			serviceResult: host + "existing",
+			serviceErr:    model.ErrOriginalURLExists,
+			needTestBody:  true,
+		},
 	}
 
 	logger := logger.NewLogger(zap.NewNop())
@@ -160,7 +178,7 @@ func TestCreateShortLink(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			req = req.WithContext(context.WithValue(req.Context(), model.JWTUserIDKey, 0))
+			req = req.WithContext(context.WithValue(req.Context(), model.JWTUserIDKey, int64(0)))
 
 			handler.CreateShortLink(w, req)
 
@@ -260,6 +278,153 @@ func TestRedirectPage(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.respData.statusCode, resp.StatusCode, "status code should match")
+		})
+	}
+}
+
+func TestCreateShortLinkBatch(t *testing.T) {
+	type respData struct {
+		statusCode  int
+		contentType string
+	}
+
+	tests := []struct {
+		name          string
+		body          []model.LinkBatchPayload
+		respData      respData
+		serviceResult []model.LinkBatchResponse
+		serviceErr    error
+	}{
+		{
+			name: "Success request",
+			body: []model.LinkBatchPayload{
+				{CorrelationID: "1", URL: "http://example.com/1"},
+				{CorrelationID: "2", URL: "http://example.com/2"},
+			},
+			respData: respData{
+				statusCode:  http.StatusCreated,
+				contentType: "application/json",
+			},
+			serviceResult: []model.LinkBatchResponse{
+				{CorrelationID: "1", ShortURL: "http://localhost:8080/abc"},
+				{CorrelationID: "2", ShortURL: "http://localhost:8080/def"},
+			},
+		},
+		{
+			name: "Service error",
+			body: []model.LinkBatchPayload{
+				{CorrelationID: "1", URL: "http://example.com/1"},
+			},
+			respData: respData{
+				statusCode:  http.StatusInternalServerError,
+				contentType: "text/plain; charset=utf-8",
+			},
+			serviceErr: errors.New("batch error"),
+		},
+	}
+
+	logger := logger.NewLogger(zap.NewNop())
+	handlerUtils := utils.NewHandlerUtils()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			linkService := &mockLinkService{batchResult: tt.serviceResult, batchErr: tt.serviceErr}
+			handler := handler.NewLinkHandler(logger, linkService, handlerUtils)
+
+			b, _ := json.Marshal(tt.body)
+			req := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", bytes.NewReader(b))
+			req.Header.Set("Content-Type", "application/json")
+			req = req.WithContext(context.WithValue(req.Context(), model.JWTUserIDKey, int64(0)))
+
+			w := httptest.NewRecorder()
+			handler.CreateShortLinkBatch(w, req)
+
+			resp := w.Result()
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.respData.statusCode, resp.StatusCode)
+			assert.Equal(t, tt.respData.contentType, resp.Header.Get("Content-Type"))
+
+			if tt.respData.statusCode == http.StatusCreated {
+				var result []model.LinkBatchResponse
+				err := json.NewDecoder(resp.Body).Decode(&result)
+				assert.NoError(t, err)
+				assert.Equal(t, tt.serviceResult, result)
+			}
+		})
+	}
+}
+
+func TestCreateShortLinkPlain(t *testing.T) {
+	tests := []struct {
+		name           string
+		contentType    string
+		body           string
+		serviceResult  string
+		serviceErr     error
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "Success request",
+			contentType:    "text/plain",
+			body:           "http://example.com",
+			serviceResult:  "http://localhost:8080/abc",
+			expectedStatus: http.StatusCreated,
+			expectedBody:   "http://localhost:8080/abc",
+		},
+		{
+			name:           "Invalid content type",
+			contentType:    "application/json",
+			body:           "http://example.com",
+			expectedStatus: http.StatusUnsupportedMediaType,
+		},
+		{
+			name:           "Empty body",
+			contentType:    "text/plain",
+			body:           "",
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "Conflict",
+			contentType:    "text/plain",
+			body:           "http://example.com",
+			serviceResult:  "http://localhost:8080/existing",
+			serviceErr:     model.ErrOriginalURLExists,
+			expectedStatus: http.StatusConflict,
+			expectedBody:   "http://localhost:8080/existing",
+		},
+		{
+			name:           "Service error",
+			contentType:    "text/plain",
+			body:           "http://example.com",
+			serviceErr:     errors.New("plain error"),
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	logger := logger.NewLogger(zap.NewNop())
+	handlerUtils := utils.NewHandlerUtils()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			linkService := &mockLinkService{createResult: tt.serviceResult, createErr: tt.serviceErr}
+			handler := handler.NewLinkHandler(logger, linkService, handlerUtils)
+
+			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte(tt.body)))
+			req.Header.Set("Content-Type", tt.contentType)
+
+			w := httptest.NewRecorder()
+			handler.CreateShortLinkPlain(w, req)
+
+			resp := w.Result()
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+			if tt.expectedBody != "" {
+				body, _ := io.ReadAll(resp.Body)
+				assert.Equal(t, tt.expectedBody, string(body))
+			}
 		})
 	}
 }

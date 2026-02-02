@@ -76,8 +76,8 @@ func (h *UserHandler) Signin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid email format", http.StatusBadRequest)
 		return
 	}
-	if len(data.Password) > pkg.MaxPasswordLength {
-		http.Error(w, "invalid credentials", http.StatusBadRequest)
+	if ok, msg := pkg.ValidatePassword(data.Password); !ok {
+		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
