@@ -78,12 +78,12 @@ func (s *LinkDataService) CreateShortLinkBatch(ctx context.Context, items []mode
 	return resItems, nil
 }
 
-func (s *LinkDataService) GetOriginalURL(ctx context.Context, id string) (string, bool, error) {
+func (s *LinkDataService) GetOriginalURL(ctx context.Context, id string) (model.LinkItem, error) {
 	linkItem, err := s.repo.Get(ctx, id)
 	if err != nil {
-		return "", false, fmt.Errorf("failed to retrieve link: %w", err)
+		return model.LinkItem{}, fmt.Errorf("failed to retrieve link: %w", err)
 	}
-	return linkItem.OriginalURL, linkItem.Deleted, nil
+	return linkItem, nil
 }
 
 func (s *LinkDataService) generateUniqueID(ctx context.Context) (string, error) {
@@ -109,4 +109,10 @@ func (s *LinkDataService) generateUniqueID(ctx context.Context) (string, error) 
 
 func (s *LinkDataService) buildShortLink(id string) string {
 	return strings.TrimRight(s.baseHost, "/") + "/" + id
+}
+
+func (s *LinkDataService) RecordVisit(ctx context.Context, visit model.Visit) {
+	if err := s.repo.RecordVisit(ctx, visit); err != nil {
+		fmt.Printf("failed to record visit for link %s: %v\n", visit.LinkID, err)
+	}
 }

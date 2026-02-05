@@ -219,3 +219,12 @@ func (r *LinkDataRepository) MarkAsDeleted(ctx context.Context, ids []string) er
 
 	return nil
 }
+
+func (r *LinkDataRepository) RecordVisit(ctx context.Context, visit model.Visit) error {
+	const query = `
+		INSERT INTO visits (link_id, ip, ua, ref)
+		VALUES ($1, $2, $3, $4)
+	`
+	_, err := r.db.ExecContext(ctx, query, visit.LinkID, visit.IP, visit.UA, visit.Referer)
+	return err
+}

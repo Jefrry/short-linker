@@ -8,7 +8,8 @@ import (
 type LinkService interface {
 	CreateShortLink(ctx context.Context, originalURL string, userID int64) (string, error)
 	CreateShortLinkBatch(ctx context.Context, items []model.LinkBatchPayload, userID int64) ([]model.LinkBatchResponse, error)
-	GetOriginalURL(ctx context.Context, id string) (string, bool, error)
+	GetOriginalURL(ctx context.Context, id string) (model.LinkItem, error)
+	RecordVisit(ctx context.Context, visit model.Visit)
 }
 
 type UserService interface {

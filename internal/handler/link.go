@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"context"
 	"io"
 	"mime"
+	"net"
 	"net/http"
 
 	"short-linker/internal/logger"
@@ -132,16 +134,32 @@ func (h *LinkHandler) CreateShortLinkPlain(w http.ResponseWriter, r *http.Reques
 // @Failure 410 {string} string "Link has been deleted"
 // @Router /{id} [get]
 func (h *LinkHandler) RedirectPage(w http.ResponseWriter, r *http.Request, id string) {
-	originalURL, deleted, err := h.service.GetOriginalURL(r.Context(), id)
+	linkItem, err := h.service.GetOriginalURL(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Link not found", http.StatusNotFound)
 		return
 	}
 
-	if deleted {
+	if linkItem.Deleted {
 		w.WriteHeader(http.StatusGone)
 		return
 	}
 
-	http.Redirect(w, r, originalURL, http.StatusTemporaryRedirect)
+	if linkItem.UserID != 0 {
+		go func() {
+			ip := r.RemoteAddr
+			if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+				ip = host
+			}
+
+			h.service.RecordVisit(context.Background(), model.Visit{
+				LinkID:  id,
+				IP:      ip,
+				UA:      r.UserAgent(),
+				Referer: r.Referer(),
+			})
+		}()
+	}
+
+	http.Redirect(w, r, linkItem.OriginalURL, http.StatusTemporaryRedirect)
 }

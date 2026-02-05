@@ -14,6 +14,7 @@ type LinkRepository interface {
 	GetByUserID(ctx context.Context, userID int64) ([]model.LinkItem, error)
 	IsOwner(ctx context.Context, id string, userID int64) (bool, error)
 	MarkAsDeleted(ctx context.Context, ids []string) error
+	RecordVisit(ctx context.Context, visit model.Visit) error
 }
 
 type UserRepository interface {
