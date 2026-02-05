@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -33,9 +32,6 @@ func (s *LinkDataService) CreateShortLink(ctx context.Context, originalURL strin
 		OriginalURL: originalURL,
 		UserID:      userID,
 	})
-	if err != nil && errors.Is(err, model.ErrOriginalURLExists) {
-		return s.buildShortLink(id), model.ErrOriginalURLExists
-	}
 	if err != nil {
 		return "", fmt.Errorf("failed to store link: %w", err)
 	}

@@ -38,8 +38,6 @@ func (r *LinkDataRepository) Save(ctx context.Context, item model.LinkItem) (str
 	const query = `
         INSERT INTO links (id, original_url, user_id)
 		VALUES ($1, $2, $3)
-		ON CONFLICT (original_url) DO UPDATE
-			SET original_url = EXCLUDED.original_url
 		RETURNING links.id
     `
 
@@ -54,10 +52,6 @@ func (r *LinkDataRepository) Save(ctx context.Context, item model.LinkItem) (str
 	err = tx.QueryRowContext(ctx, query, item.ID, item.OriginalURL, userID).Scan(&savedID)
 	if err != nil {
 		return "", err
-	}
-
-	if savedID != item.ID {
-		return savedID, model.ErrOriginalURLExists
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -102,7 +96,7 @@ func (r *LinkDataRepository) SaveBatch(ctx context.Context, items []model.LinkIt
 		values = append(values, item.ID, item.OriginalURL, userID)
 	}
 
-	queryBuilder.WriteString(" ON CONFLICT (original_url) DO NOTHING")
+	queryBuilder.WriteString(" ON CONFLICT (id) DO NOTHING")
 
 	_, err = tx.ExecContext(ctx, queryBuilder.String(), values...)
 	if err != nil {

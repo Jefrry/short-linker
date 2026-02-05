@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"io"
 	"mime"
 	"net/http"
@@ -36,7 +35,6 @@ func NewLinkHandler(l logger.Logger, service service.LinkService, u utils.Handle
 // @Param link body model.LinkPayload true "Link payload"
 // @Success 201 {object} model.LinkResponse "Short link created"
 // @Failure 400 {string} string "Bad request"
-// @Failure 409 {object} model.LinkResponse "URL already exists"
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/shorten [post]
 func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
@@ -48,10 +46,6 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.GetUserID(r.Context())
 
 	shortLink, err := h.service.CreateShortLink(r.Context(), data.URL, userID)
-	if err != nil && errors.Is(err, model.ErrOriginalURLExists) {
-		h.utils.WriteJSON(w, http.StatusConflict, model.LinkResponse{ShortURL: shortLink})
-		return
-	}
 	if err != nil {
 		http.Error(w, "Failed to create short link", http.StatusInternalServerError)
 		h.logger.Error("CreateShortLink error", logger.Error(err))
@@ -97,7 +91,6 @@ func (h *LinkHandler) CreateShortLinkBatch(w http.ResponseWriter, r *http.Reques
 // @Param url body string true "Original URL"
 // @Success 201 {string} string "Short URL"
 // @Failure 400 {string} string "Bad request"
-// @Failure 409 {string} string "URL already exists"
 // @Failure 415 {string} string "Unsupported media type"
 // @Failure 500 {string} string "Internal server error"
 // @Deprecated
@@ -121,10 +114,6 @@ func (h *LinkHandler) CreateShortLinkPlain(w http.ResponseWriter, r *http.Reques
 	}
 
 	shortLink, err := h.service.CreateShortLink(r.Context(), string(body), 0)
-	if err != nil && errors.Is(err, model.ErrOriginalURLExists) {
-		h.utils.WritePlain(w, http.StatusConflict, shortLink)
-		return
-	}
 	if err != nil {
 		http.Error(w, "Failed to create short link", http.StatusInternalServerError)
 		h.logger.Error("CreateShortLinkPlain error", logger.Error(err))
