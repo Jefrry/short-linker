@@ -3,8 +3,9 @@ package router
 import (
 	"short-linker/internal/middleware"
 
-	"github.com/go-chi/chi/v5"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func (r *Router) linkRoutes() {
@@ -16,6 +17,15 @@ func (r *Router) linkRoutes() {
 		pr.Post("/api/shorten", r.linkHandler.CreateShortLink)
 		pr.Post("/api/shorten/batch", r.linkHandler.CreateShortLinkBatch)
 	})
+
+	r.router.Group(func(pr chi.Router) {
+		pr.Use(middleware.AuthMiddleware([]byte(r.JWTSecret)))
+		pr.Get("/api/shorten/{id}", func(wr http.ResponseWriter, rq *http.Request) {
+			id := chi.URLParam(rq, "id")
+			r.linkHandler.GetLinkMetrics(wr, rq, id)
+		})
+	})
+
 	r.router.Get("/{id}", func(wr http.ResponseWriter, rq *http.Request) {
 		id := chi.URLParam(rq, "id")
 		r.linkHandler.RedirectPage(wr, rq, id)

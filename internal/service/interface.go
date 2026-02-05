@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"time"
+
 	"short-linker/internal/model"
 )
 
@@ -10,6 +12,7 @@ type LinkService interface {
 	CreateShortLinkBatch(ctx context.Context, items []model.LinkBatchPayload, userID int64) ([]model.LinkBatchResponse, error)
 	GetOriginalURL(ctx context.Context, id string) (model.LinkItem, error)
 	RecordVisit(ctx context.Context, visit model.Visit)
+	GetLinkMetrics(ctx context.Context, linkID string, userID int64, from, to time.Time) ([]model.Visit, error)
 }
 
 type UserService interface {

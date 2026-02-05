@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"short-linker/internal/model"
 )
@@ -15,6 +16,7 @@ type LinkRepository interface {
 	IsOwner(ctx context.Context, id string, userID int64) (bool, error)
 	MarkAsDeleted(ctx context.Context, ids []string) error
 	RecordVisit(ctx context.Context, visit model.Visit) error
+	GetVisits(ctx context.Context, linkID string, from, to time.Time) ([]model.Visit, error)
 }
 
 type UserRepository interface {

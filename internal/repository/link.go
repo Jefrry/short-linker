@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"short-linker/internal/model"
 	"short-linker/internal/storage"
@@ -227,4 +228,35 @@ func (r *LinkDataRepository) RecordVisit(ctx context.Context, visit model.Visit)
 	`
 	_, err := r.db.ExecContext(ctx, query, visit.LinkID, visit.IP, visit.UA, visit.Referer)
 	return err
+}
+
+func (r *LinkDataRepository) GetVisits(ctx context.Context, linkID string, from, to time.Time) ([]model.Visit, error) {
+	const query = `
+		SELECT link_id, ip, ua, ref, visited_at
+		FROM visits
+		WHERE link_id = $1 AND visited_at >= $2 AND visited_at <= $3
+		ORDER BY visited_at DESC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, linkID, from, to)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var visits []model.Visit
+	for rows.Next() {
+		var v model.Visit
+		err := rows.Scan(&v.LinkID, &v.IP, &v.UA, &v.Referer, &v.VisitedAt)
+		if err != nil {
+			return nil, err
+		}
+		visits = append(visits, v)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return visits, nil
 }

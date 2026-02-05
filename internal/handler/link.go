@@ -6,6 +6,9 @@ import (
 	"mime"
 	"net"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 
 	"short-linker/internal/logger"
 	"short-linker/internal/middleware"
@@ -162,4 +165,69 @@ func (h *LinkHandler) RedirectPage(w http.ResponseWriter, r *http.Request, id st
 	}
 
 	http.Redirect(w, r, linkItem.OriginalURL, http.StatusTemporaryRedirect)
+}
+
+// GetLinkMetrics godoc
+// @Summary Get link metrics
+// @Description Get visit metrics for a specific short link within a date range
+// @Tags links
+// @Produce json
+// @Param id path string true "Short link ID"
+// @Param from query int false "From timestamp (Unix)"
+// @Param to query int false "To timestamp (Unix)"
+// @Success 200 {array} model.Visit "List of visits"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 403 {string} string "Forbidden"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/shorten/{id} [get]
+func (h *LinkHandler) GetLinkMetrics(w http.ResponseWriter, r *http.Request, id string) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok || userID == 0 {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	query := r.URL.Query()
+	now := time.Now()
+
+	to, err := h.parseUnixParam(query.Get("to"), now)
+	if err != nil {
+		http.Error(w, "Invalid 'to' timestamp", http.StatusBadRequest)
+		return
+	}
+
+	from, err := h.parseUnixParam(query.Get("from"), to.AddDate(0, 0, -7))
+	if err != nil {
+		http.Error(w, "Invalid 'from' timestamp", http.StatusBadRequest)
+		return
+	}
+
+	if to.Sub(from) > 90*24*time.Hour {
+		http.Error(w, "Period cannot be more than 90 days", http.StatusBadRequest)
+		return
+	}
+
+	visits, err := h.service.GetLinkMetrics(r.Context(), id, userID, from, to)
+	if err != nil {
+		if strings.Contains(err.Error(), "access denied") {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		h.logger.Error("GetLinkMetrics error", logger.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	h.utils.WriteJSON(w, http.StatusOK, visits)
+}
+
+func (h *LinkHandler) parseUnixParam(value string, defaultTime time.Time) (time.Time, error) {
+	if value == "" {
+		return defaultTime, nil
+	}
+	ts, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Unix(ts, 0), nil
 }

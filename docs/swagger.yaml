@@ -56,6 +56,19 @@ definitions:
       name:
         type: string
     type: object
+  model.Visit:
+    properties:
+      ip:
+        type: string
+      linkID:
+        type: string
+      referer:
+        type: string
+      ua:
+        type: string
+      visitedAt:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -85,10 +98,6 @@ paths:
             type: string
         "400":
           description: Bad request
-          schema:
-            type: string
-        "409":
-          description: URL already exists
           schema:
             type: string
         "415":
@@ -148,15 +157,52 @@ paths:
           description: Bad request
           schema:
             type: string
-        "409":
-          description: URL already exists
-          schema:
-            $ref: '#/definitions/model.LinkResponse'
         "500":
           description: Internal server error
           schema:
             type: string
       summary: Create a short link
+      tags:
+      - links
+  /api/shorten/{id}:
+    get:
+      description: Get visit metrics for a specific short link within a date range
+      parameters:
+      - description: Short link ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: From timestamp (Unix)
+        in: query
+        name: from
+        type: integer
+      - description: To timestamp (Unix)
+        in: query
+        name: to
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of visits
+          schema:
+            items:
+              $ref: '#/definitions/model.Visit'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get link metrics
       tags:
       - links
   /api/shorten/batch:

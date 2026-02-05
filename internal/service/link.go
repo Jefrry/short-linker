@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"short-linker/internal/model"
 	"short-linker/internal/repository"
@@ -115,4 +116,21 @@ func (s *LinkDataService) RecordVisit(ctx context.Context, visit model.Visit) {
 	if err := s.repo.RecordVisit(ctx, visit); err != nil {
 		fmt.Printf("failed to record visit for link %s: %v\n", visit.LinkID, err)
 	}
+}
+
+func (s *LinkDataService) GetLinkMetrics(ctx context.Context, linkID string, userID int64, from, to time.Time) ([]model.Visit, error) {
+	isOwner, err := s.repo.IsOwner(ctx, linkID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check ownership: %w", err)
+	}
+	if !isOwner {
+		return nil, fmt.Errorf("access denied: user %d is not the owner of link %s", userID, linkID)
+	}
+
+	visits, err := s.repo.GetVisits(ctx, linkID, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get visits: %w", err)
+	}
+
+	return visits, nil
 }

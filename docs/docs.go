@@ -53,12 +53,6 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
-                    "409": {
-                        "description": "URL already exists",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
                     "415": {
                         "description": "Unsupported media type",
                         "schema": {
@@ -111,12 +105,6 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
-                    "409": {
-                        "description": "URL already exists",
-                        "schema": {
-                            "$ref": "#/definitions/model.LinkResponse"
-                        }
-                    },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
@@ -165,6 +153,68 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/shorten/{id}": {
+            "get": {
+                "description": "Get visit metrics for a specific short link within a date range",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "links"
+                ],
+                "summary": "Get link metrics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Short link ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "From timestamp (Unix)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "To timestamp (Unix)",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of visits",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Visit"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "type": "string"
                         }
@@ -586,6 +636,26 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Visit": {
+            "type": "object",
+            "properties": {
+                "ip": {
+                    "type": "string"
+                },
+                "linkID": {
+                    "type": "string"
+                },
+                "referer": {
+                    "type": "string"
+                },
+                "ua": {
+                    "type": "string"
+                },
+                "visitedAt": {
                     "type": "string"
                 }
             }
