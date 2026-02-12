@@ -20,6 +20,7 @@ import (
 
 type mockUserService struct {
 	signupResult model.User
+	signupToken  string
 	signupErr    error
 
 	signinResult string
@@ -34,8 +35,8 @@ type mockUserService struct {
 	deleteLinksErr error
 }
 
-func (m *mockUserService) Signup(ctx context.Context, data model.SignupPayload) (model.User, error) {
-	return m.signupResult, m.signupErr
+func (m *mockUserService) Signup(ctx context.Context, data model.SignupPayload) (model.User, string, error) {
+	return m.signupResult, m.signupToken, m.signupErr
 }
 
 func (m *mockUserService) Signin(ctx context.Context, email, password string) (string, error) {
@@ -59,6 +60,7 @@ func TestSignup(t *testing.T) {
 		name           string
 		body           any
 		serviceResult  model.User
+		serviceToken   string
 		serviceErr     error
 		expectedStatus int
 	}{
@@ -70,6 +72,7 @@ func TestSignup(t *testing.T) {
 				Password: "Password123!",
 			},
 			serviceResult:  model.User{ID: 1, Name: "Test User", Email: "test@example.com"},
+			serviceToken:   "valid-token",
 			expectedStatus: http.StatusCreated,
 		},
 		{
@@ -114,7 +117,7 @@ func TestSignup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			svc := &mockUserService{signupResult: tt.serviceResult, signupErr: tt.serviceErr}
+			svc := &mockUserService{signupResult: tt.serviceResult, signupToken: tt.serviceToken, signupErr: tt.serviceErr}
 			h := handler.NewUserHandler(l, svc, u)
 
 			b, _ := json.Marshal(tt.body)

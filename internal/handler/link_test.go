@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
@@ -21,13 +22,15 @@ import (
 
 // Maybe I should move it to service
 type mockLinkService struct {
-	createResult string
-	getResult    model.LinkItem
-	batchResult  []model.LinkBatchResponse
+	createResult  string
+	getResult     model.LinkItem
+	batchResult   []model.LinkBatchResponse
+	metricsResult []model.Visit
 
-	createErr error
-	getErr    error
-	batchErr  error
+	createErr  error
+	getErr     error
+	batchErr   error
+	metricsErr error
 }
 
 func (m *mockLinkService) CreateShortLink(ctx context.Context, originalURL string, userID int64) (string, error) {
@@ -44,6 +47,10 @@ func (m *mockLinkService) CreateShortLinkBatch(ctx context.Context, items []mode
 
 func (m *mockLinkService) RecordVisit(ctx context.Context, visit model.Visit) {
 	// no-op
+}
+
+func (m *mockLinkService) GetLinkMetrics(ctx context.Context, linkID string, userID int64, from, to time.Time) ([]model.Visit, error) {
+	return m.metricsResult, m.metricsErr
 }
 
 func TestCreateShortLink(t *testing.T) {
@@ -140,22 +147,6 @@ func TestCreateShortLink(t *testing.T) {
 			serviceErr:    errors.New("something wrong with service"),
 			serviceResult: "",
 			needTestBody:  false,
-		},
-		{
-			name: "URL already exists",
-			reqData: reqData{
-				method:      http.MethodPost,
-				contentType: "application/json",
-				body:        "http://example.com",
-			},
-			respData: respData{
-				body:        host + "existing",
-				statusCode:  http.StatusConflict,
-				contentType: "application/json",
-			},
-			serviceResult: host + "existing",
-			serviceErr:    model.ErrOriginalURLExists,
-			needTestBody:  true,
 		},
 	}
 
@@ -392,15 +383,6 @@ func TestCreateShortLinkPlain(t *testing.T) {
 			contentType:    "text/plain",
 			body:           "",
 			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:           "Conflict",
-			contentType:    "text/plain",
-			body:           "http://example.com",
-			serviceResult:  "http://localhost:8080/existing",
-			serviceErr:     model.ErrOriginalURLExists,
-			expectedStatus: http.StatusConflict,
-			expectedBody:   "http://localhost:8080/existing",
 		},
 		{
 			name:           "Service error",

@@ -27,7 +27,7 @@ func NewUserService(tokenService TokenService, userRepo repository.UserRepositor
 	}
 }
 
-func (s *UserDataService) Signup(ctx context.Context, data model.SignupPayload) (model.User, error) {
+func (s *UserDataService) Signup(ctx context.Context, data model.SignupPayload) (model.User, string, error) {
 	user := model.User{
 		Name:  data.Name,
 		Email: data.Email,
@@ -35,16 +35,21 @@ func (s *UserDataService) Signup(ctx context.Context, data model.SignupPayload) 
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(data.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return model.User{}, err
+		return model.User{}, "", err
 	}
 	user.Password = string(hash)
 
 	createdUser, err := s.userRepo.Create(ctx, user)
 	if err != nil {
-		return model.User{}, err
+		return model.User{}, "", err
 	}
 
-	return createdUser, nil
+	token, err := s.tokenService.GenerateToken(createdUser.ID)
+	if err != nil {
+		return model.User{}, "", err
+	}
+
+	return createdUser, token, nil
 }
 
 func (s *UserDataService) Signin(ctx context.Context, email, password string) (string, error) {

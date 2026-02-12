@@ -59,13 +59,14 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.service.Signup(r.Context(), data)
+	res, token, err := h.service.Signup(r.Context(), data)
 	if err != nil {
 		http.Error(w, "Failed to signup user", http.StatusInternalServerError)
 		h.logger.Error("Signup error", logger.Error(err))
 		return
 	}
 
+	h.utils.SetSessionCookie(w, token)
 	h.utils.WriteJSON(w, http.StatusCreated, res)
 }
 
