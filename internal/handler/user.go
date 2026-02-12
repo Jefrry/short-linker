@@ -77,7 +77,7 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce plain
 // @Param credentials body object{email=string,password=string} true "User credentials"
-// @Success 200 {string} string "JWT token"
+// @Success 204 "No content"
 // @Failure 400 {string} string "Bad request"
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/user/signin [post]
@@ -112,7 +112,7 @@ func (h *UserHandler) Signin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.utils.SetSessionCookie(w, token)
-	h.utils.WritePlain(w, http.StatusOK, token)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // GetProfile godoc

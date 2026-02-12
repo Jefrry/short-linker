@@ -298,11 +298,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "JWT token",
-                        "schema": {
-                            "type": "string"
-                        }
+                    "204": {
+                        "description": "No content"
                     },
                     "400": {
                         "description": "Bad request",

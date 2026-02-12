@@ -153,7 +153,7 @@ func TestSignin(t *testing.T) {
 				"password": "Password123!",
 			},
 			serviceResult:  "valid-token",
-			expectedStatus: http.StatusOK,
+			expectedStatus: http.StatusNoContent,
 		},
 		{
 			name: "Missing Fields",
