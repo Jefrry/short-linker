@@ -281,7 +281,7 @@ func TestGetLinks(t *testing.T) {
 			name:   "Success",
 			userID: 1,
 			serviceResult: []model.LinkItem{
-				{OriginalURL: "http://example.com/1", ID: "1"},
+				{OriginalURL: "http://example.com/1", ID: "1", ShortURL: "http://localhost:8080/1"},
 			},
 			expectedStatus: http.StatusOK,
 		},

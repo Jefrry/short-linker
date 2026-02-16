@@ -56,7 +56,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 	userRepo := repository.NewUserRepository(db)
 
 	linkService := service.NewLinkService(linkRepo, cfg.BaseShortURL)
-	userService := service.NewUserService(service.NewTokenService(cfg.JWTSecret), userRepo, linkRepo)
+	userService := service.NewUserService(service.NewTokenService(cfg.JWTSecret), userRepo, linkRepo, cfg.BaseShortURL)
 
 	handlerUtils := utils.NewHandlerUtils()
 

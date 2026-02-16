@@ -38,7 +38,7 @@ func NewLinkHandler(l logger.Logger, service service.LinkService, u utils.Handle
 // @Accept json
 // @Produce json
 // @Param link body model.LinkPayload true "Link payload"
-// @Success 201 {object} model.LinkResponse "Short link created"
+// @Success 201 {object} model.LinkItem "Short link created"
 // @Failure 400 {string} string "Bad request"
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/shorten [post]
@@ -50,13 +50,13 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := middleware.GetUserID(r.Context())
 
-	shortLink, err := h.service.CreateShortLink(r.Context(), data.URL, userID)
+	linkItem, err := h.service.CreateShortLink(r.Context(), data.URL, userID)
 	if err != nil {
 		http.Error(w, "Failed to create short link", http.StatusInternalServerError)
 		h.logger.Error("CreateShortLink error", logger.Error(err))
 		return
 	}
-	h.utils.WriteJSON(w, http.StatusCreated, model.LinkResponse{ShortURL: shortLink})
+	h.utils.WriteJSON(w, http.StatusCreated, linkItem)
 }
 
 // CreateShortLinkBatch godoc
@@ -118,13 +118,13 @@ func (h *LinkHandler) CreateShortLinkPlain(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	shortLink, err := h.service.CreateShortLink(r.Context(), string(body), 0)
+	linkItem, err := h.service.CreateShortLink(r.Context(), string(body), 0)
 	if err != nil {
 		http.Error(w, "Failed to create short link", http.StatusInternalServerError)
 		h.logger.Error("CreateShortLinkPlain error", logger.Error(err))
 		return
 	}
-	h.utils.WritePlain(w, http.StatusCreated, shortLink)
+	h.utils.WritePlain(w, http.StatusCreated, linkItem.ID)
 }
 
 // RedirectPage godoc

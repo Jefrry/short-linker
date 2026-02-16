@@ -22,7 +22,7 @@ import (
 
 // Maybe I should move it to service
 type mockLinkService struct {
-	createResult  string
+	createResult  model.LinkItem
 	getResult     model.LinkItem
 	batchResult   []model.LinkBatchResponse
 	metricsResult []model.Visit
@@ -33,7 +33,7 @@ type mockLinkService struct {
 	metricsErr error
 }
 
-func (m *mockLinkService) CreateShortLink(ctx context.Context, originalURL string, userID int64) (string, error) {
+func (m *mockLinkService) CreateShortLink(ctx context.Context, originalURL string, userID int64) (model.LinkItem, error) {
 	return m.createResult, m.createErr
 }
 
@@ -70,7 +70,7 @@ func TestCreateShortLink(t *testing.T) {
 		name          string
 		reqData       reqData
 		respData      respData
-		serviceResult string
+		serviceResult model.LinkItem
 		serviceErr    error
 		needTestBody  bool
 	}{
@@ -82,11 +82,11 @@ func TestCreateShortLink(t *testing.T) {
 				body:        "http://example.com",
 			},
 			respData: respData{
-				body:        host + "abc",
+				body:        "abc",
 				statusCode:  http.StatusCreated,
 				contentType: "application/json",
 			},
-			serviceResult: host + "abc",
+			serviceResult: model.LinkItem{ID: "abc", OriginalURL: "http://example.com", ShortURL: host + "abc"},
 			needTestBody:  false,
 		},
 		{
@@ -97,11 +97,11 @@ func TestCreateShortLink(t *testing.T) {
 				body:        "http://example.com",
 			},
 			respData: respData{
-				body:        "",
+				body:        "abc",
 				statusCode:  http.StatusCreated,
 				contentType: "application/json",
 			},
-			serviceResult: "",
+			serviceResult: model.LinkItem{ID: "abc", OriginalURL: "http://example.com", ShortURL: host + "abc"},
 			needTestBody:  true,
 		},
 		{
@@ -116,7 +116,7 @@ func TestCreateShortLink(t *testing.T) {
 				statusCode:  http.StatusUnsupportedMediaType,
 				contentType: "text/plain; charset=utf-8",
 			},
-			serviceResult: "",
+			serviceResult: model.LinkItem{},
 			needTestBody:  false,
 		},
 		{
@@ -130,7 +130,7 @@ func TestCreateShortLink(t *testing.T) {
 				statusCode:  http.StatusBadRequest,
 				contentType: "text/plain; charset=utf-8",
 			},
-			serviceResult: "",
+			serviceResult: model.LinkItem{},
 			needTestBody:  false,
 		},
 		{
@@ -145,7 +145,7 @@ func TestCreateShortLink(t *testing.T) {
 				contentType: "text/plain; charset=utf-8",
 			},
 			serviceErr:    errors.New("something wrong with service"),
-			serviceResult: "",
+			serviceResult: model.LinkItem{},
 			needTestBody:  false,
 		},
 	}
@@ -185,13 +185,13 @@ func TestCreateShortLink(t *testing.T) {
 			if tt.needTestBody {
 				body := w.Body.String()
 
-				var resp model.LinkResponse
-				err := json.Unmarshal([]byte(body), &resp)
+				var res model.LinkItem
+				err := json.Unmarshal([]byte(body), &res)
 				if err != nil {
 					t.Fatalf("failed to unmarshal response body: %v; body=%q", err, body)
 				}
 
-				assert.Equal(t, tt.respData.body, resp.ShortURL, "response body should match expected short link")
+				assert.Equal(t, tt.respData.body, res.ID, "response body should match expected ID")
 			}
 		})
 	}
@@ -359,7 +359,7 @@ func TestCreateShortLinkPlain(t *testing.T) {
 		name           string
 		contentType    string
 		body           string
-		serviceResult  string
+		serviceResult  model.LinkItem
 		serviceErr     error
 		expectedStatus int
 		expectedBody   string
@@ -368,9 +368,9 @@ func TestCreateShortLinkPlain(t *testing.T) {
 			name:           "Success request",
 			contentType:    "text/plain",
 			body:           "http://example.com",
-			serviceResult:  "http://localhost:8080/abc",
+			serviceResult:  model.LinkItem{ID: "abc", OriginalURL: "http://example.com", ShortURL: "http://localhost:8080/abc"},
 			expectedStatus: http.StatusCreated,
-			expectedBody:   "http://localhost:8080/abc",
+			expectedBody:   "abc",
 		},
 		{
 			name:           "Invalid content type",

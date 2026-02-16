@@ -20,20 +20,16 @@ definitions:
         type: boolean
       id:
         type: string
-      originalURL:
+      original_url:
         type: string
-      userID:
-        format: int64
+      short_url:
+        type: string
+      user_id:
         type: integer
     type: object
   model.LinkPayload:
     properties:
       url:
-        type: string
-    type: object
-  model.LinkResponse:
-    properties:
-      result:
         type: string
     type: object
   model.SignupPayload:
@@ -152,7 +148,7 @@ paths:
         "201":
           description: Short link created
           schema:
-            $ref: '#/definitions/model.LinkResponse'
+            $ref: '#/definitions/model.LinkItem'
         "400":
           description: Bad request
           schema:

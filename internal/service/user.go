@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"golang.org/x/crypto/bcrypt"
@@ -16,14 +17,16 @@ type UserDataService struct {
 
 	userRepo repository.UserRepository
 	linkRepo repository.LinkRepository
+	baseHost string
 }
 
-func NewUserService(tokenService TokenService, userRepo repository.UserRepository, linkRepo repository.LinkRepository) *UserDataService {
+func NewUserService(tokenService TokenService, userRepo repository.UserRepository, linkRepo repository.LinkRepository, baseHost string) *UserDataService {
 	return &UserDataService{
 		tokenService: tokenService,
 
 		userRepo: userRepo,
 		linkRepo: linkRepo,
+		baseHost: baseHost,
 	}
 }
 
@@ -76,7 +79,18 @@ func (s *UserDataService) GetProfile(ctx context.Context, userID int64) (model.U
 }
 
 func (s *UserDataService) GetLinks(ctx context.Context, userID int64) ([]model.LinkItem, error) {
-	return s.linkRepo.GetByUserID(ctx, userID)
+	links, err := s.linkRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range links {
+		links[i].ShortURL = s.buildShortLink(links[i].ID)
+	}
+	return links, nil
+}
+
+func (s *UserDataService) buildShortLink(id string) string {
+	return strings.TrimRight(s.baseHost, "/") + "/" + id
 }
 
 func (s *UserDataService) DeleteLinks(ctx context.Context, links []string, userID int64) error {

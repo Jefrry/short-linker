@@ -24,10 +24,11 @@ type LinkBatchResponse struct {
 }
 
 type LinkItem struct {
-	ID          string
-	OriginalURL string
-	UserID      int64
-	Deleted     bool
+	ID          string `json:"id"`
+	OriginalURL string `json:"original_url"`
+	ShortURL    string `json:"short_url"`
+	UserID      int64  `json:"user_id"`
+	Deleted     bool   `json:"deleted"`
 }
 
 type Visit struct {

@@ -96,7 +96,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Short link created",
                         "schema": {
-                            "$ref": "#/definitions/model.LinkResponse"
+                            "$ref": "#/definitions/model.LinkItem"
                         }
                     },
                     "400": {
@@ -581,12 +581,14 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "originalURL": {
+                "original_url": {
                     "type": "string"
                 },
-                "userID": {
-                    "type": "integer",
-                    "format": "int64"
+                "short_url": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -594,14 +596,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "model.LinkResponse": {
-            "type": "object",
-            "properties": {
-                "result": {
                     "type": "string"
                 }
             }

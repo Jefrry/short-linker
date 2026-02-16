@@ -23,22 +23,23 @@ func NewLinkService(repo repository.LinkRepository, baseHost string) *LinkDataSe
 	}
 }
 
-func (s *LinkDataService) CreateShortLink(ctx context.Context, originalURL string, userID int64) (string, error) {
+func (s *LinkDataService) CreateShortLink(ctx context.Context, originalURL string, userID int64) (model.LinkItem, error) {
 	id, err := s.generateUniqueID(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate unique ID: %w", err)
+		return model.LinkItem{}, fmt.Errorf("failed to generate unique ID: %w", err)
 	}
-	id, err = s.repo.Save(ctx, model.LinkItem{
+	link := model.LinkItem{
 		ID:          id,
 		OriginalURL: originalURL,
+		ShortURL:    s.buildShortLink(id),
 		UserID:      userID,
-	})
+	}
+	_, err = s.repo.Save(ctx, link)
 	if err != nil {
-		return "", fmt.Errorf("failed to store link: %w", err)
+		return model.LinkItem{}, fmt.Errorf("failed to store link: %w", err)
 	}
 
-	shortLink := s.buildShortLink(id)
-	return shortLink, nil
+	return link, nil
 }
 
 func (s *LinkDataService) CreateShortLinkBatch(ctx context.Context, items []model.LinkBatchPayload, userID int64) ([]model.LinkBatchResponse, error) {
@@ -84,6 +85,7 @@ func (s *LinkDataService) GetOriginalURL(ctx context.Context, id string) (model.
 	if err != nil {
 		return model.LinkItem{}, fmt.Errorf("failed to retrieve link: %w", err)
 	}
+	linkItem.ShortURL = s.buildShortLink(linkItem.ID)
 	return linkItem, nil
 }
 
