@@ -157,7 +157,7 @@ func (r *LinkDataRepository) GetByUserID(ctx context.Context, userID int64) ([]m
 	defer tx.Rollback()
 
 	const query = `
-		SELECT id, original_url, user_id
+		SELECT id, original_url, user_id, deleted
 		FROM links
 		WHERE user_id = $1
 	`
@@ -175,6 +175,7 @@ func (r *LinkDataRepository) GetByUserID(ctx context.Context, userID int64) ([]m
 			&item.ID,
 			&item.OriginalURL,
 			&item.UserID,
+			&item.Deleted,
 		)
 		if err != nil {
 			return nil, err
