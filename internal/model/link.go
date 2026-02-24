@@ -32,11 +32,16 @@ type LinkItem struct {
 }
 
 type Visit struct {
-	LinkID    string
-	IP        string
-	UA        string
-	Referer   string
-	VisitedAt time.Time
+	LinkID    string    `json:"link_id"`
+	IP        string    `json:"ip"`
+	UA        string    `json:"ua"`
+	Referer   string    `json:"referer"`
+	VisitedAt time.Time `json:"visited_at"`
+}
+
+type VisitsByDate struct {
+	Date  time.Time `json:"date"`
+	Count int       `json:"count"`
 }
 
 var ErrOriginalURLExists = errors.New("original url already exists")

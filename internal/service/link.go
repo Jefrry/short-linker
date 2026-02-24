@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -120,7 +121,7 @@ func (s *LinkDataService) RecordVisit(ctx context.Context, visit model.Visit) {
 	}
 }
 
-func (s *LinkDataService) GetLinkMetrics(ctx context.Context, linkID string, userID int64, from, to time.Time) ([]model.Visit, error) {
+func (s *LinkDataService) GetLinkMetrics(ctx context.Context, linkID string, userID int64, from, to time.Time) ([]model.VisitsByDate, error) {
 	isOwner, err := s.repo.IsOwner(ctx, linkID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check ownership: %w", err)
@@ -134,5 +135,23 @@ func (s *LinkDataService) GetLinkMetrics(ctx context.Context, linkID string, use
 		return nil, fmt.Errorf("failed to get visits: %w", err)
 	}
 
-	return visits, nil
+	metricsMap := make(map[time.Time]int)
+	for _, v := range visits {
+		date := time.Date(v.VisitedAt.Year(), v.VisitedAt.Month(), v.VisitedAt.Day(), 0, 0, 0, 0, v.VisitedAt.Location())
+		metricsMap[date]++
+	}
+
+	metrics := make([]model.VisitsByDate, 0, len(metricsMap))
+	for date, count := range metricsMap {
+		metrics = append(metrics, model.VisitsByDate{
+			Date:  date,
+			Count: count,
+		})
+	}
+
+	sort.Slice(metrics, func(i, j int) bool {
+		return metrics[i].Date.Before(metrics[j].Date)
+	})
+
+	return metrics, nil
 }

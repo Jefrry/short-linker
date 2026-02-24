@@ -175,7 +175,7 @@ func (h *LinkHandler) RedirectPage(w http.ResponseWriter, r *http.Request, id st
 // @Param id path string true "Short link ID"
 // @Param from query int false "From timestamp (Unix)"
 // @Param to query int false "To timestamp (Unix)"
-// @Success 200 {array} model.Visit "List of visits"
+// @Success 200 {array} model.VisitsByDate "List of visits"
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 403 {string} string "Forbidden"
 // @Failure 500 {string} string "Internal server error"

@@ -52,17 +52,11 @@ definitions:
       name:
         type: string
     type: object
-  model.Visit:
+  model.VisitsByDate:
     properties:
-      ip:
-        type: string
-      linkID:
-        type: string
-      referer:
-        type: string
-      ua:
-        type: string
-      visitedAt:
+      count:
+        type: integer
+      date:
         type: string
     type: object
 host: localhost:8080
@@ -184,7 +178,7 @@ paths:
           description: List of visits
           schema:
             items:
-              $ref: '#/definitions/model.Visit'
+              $ref: '#/definitions/model.VisitsByDate'
             type: array
         "401":
           description: Unauthorized

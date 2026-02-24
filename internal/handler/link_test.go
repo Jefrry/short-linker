@@ -25,7 +25,7 @@ type mockLinkService struct {
 	createResult  model.LinkItem
 	getResult     model.LinkItem
 	batchResult   []model.LinkBatchResponse
-	metricsResult []model.Visit
+	metricsResult []model.VisitsByDate
 
 	createErr  error
 	getErr     error
@@ -49,7 +49,7 @@ func (m *mockLinkService) RecordVisit(ctx context.Context, visit model.Visit) {
 	// no-op
 }
 
-func (m *mockLinkService) GetLinkMetrics(ctx context.Context, linkID string, userID int64, from, to time.Time) ([]model.Visit, error) {
+func (m *mockLinkService) GetLinkMetrics(ctx context.Context, linkID string, userID int64, from, to time.Time) ([]model.VisitsByDate, error) {
 	return m.metricsResult, m.metricsErr
 }
 

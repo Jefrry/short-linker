@@ -203,7 +203,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/model.Visit"
+                                "$ref": "#/definitions/model.VisitsByDate"
                             }
                         }
                     },
@@ -631,22 +631,13 @@ const docTemplate = `{
                 }
             }
         },
-        "model.Visit": {
+        "model.VisitsByDate": {
             "type": "object",
             "properties": {
-                "ip": {
-                    "type": "string"
+                "count": {
+                    "type": "integer"
                 },
-                "linkID": {
-                    "type": "string"
-                },
-                "referer": {
-                    "type": "string"
-                },
-                "ua": {
-                    "type": "string"
-                },
-                "visitedAt": {
+                "date": {
                     "type": "string"
                 }
             }
