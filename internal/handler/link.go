@@ -221,6 +221,32 @@ func (h *LinkHandler) GetLinkMetrics(w http.ResponseWriter, r *http.Request, id 
 	h.utils.WriteJSON(w, http.StatusOK, visits)
 }
 
+// GetLinkInfo godoc
+// @Summary Get link info
+// @Description Get detailed information about a specific short link
+// @Tags links
+// @Produce json
+// @Param id path string true "Short link ID"
+// @Success 200 {object} model.LinkItem "Link information"
+// @Failure 404 {string} string "Link not found"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/link/{id} [get]
+func (h *LinkHandler) GetLinkInfo(w http.ResponseWriter, r *http.Request, id string) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok || userID == 0 {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	linkItem, err := h.service.GetLink(r.Context(), id, userID)
+	if err != nil {
+		http.Error(w, "Link not found", http.StatusNotFound)
+		return
+	}
+
+	h.utils.WriteJSON(w, http.StatusOK, linkItem)
+}
+
 func (h *LinkHandler) parseUnixParam(value string, defaultTime time.Time) (time.Time, error) {
 	if value == "" {
 		return defaultTime, nil

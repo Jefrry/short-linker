@@ -16,6 +16,10 @@ func (r *Router) linkRoutes() {
 		pr.Post("/", r.linkHandler.CreateShortLinkPlain)
 		pr.Post("/api/shorten", r.linkHandler.CreateShortLink)
 		pr.Post("/api/shorten/batch", r.linkHandler.CreateShortLinkBatch)
+		pr.Get("/api/link/{id}", func(wr http.ResponseWriter, rq *http.Request) {
+			id := chi.URLParam(rq, "id")
+			r.linkHandler.GetLinkInfo(wr, rq, id)
+		})
 	})
 
 	r.router.Group(func(pr chi.Router) {

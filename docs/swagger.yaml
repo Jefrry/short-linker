@@ -124,6 +124,33 @@ paths:
       summary: Redirect to original URL
       tags:
       - links
+  /api/link/{id}:
+    get:
+      description: Get detailed information about a specific short link
+      parameters:
+      - description: Short link ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Link information
+          schema:
+            $ref: '#/definitions/model.LinkItem'
+        "404":
+          description: Link not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get link info
+      tags:
+      - links
   /api/shorten:
     post:
       consumes:

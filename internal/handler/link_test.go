@@ -53,6 +53,10 @@ func (m *mockLinkService) GetLinkMetrics(ctx context.Context, linkID string, use
 	return m.metricsResult, m.metricsErr
 }
 
+func (m *mockLinkService) GetLink(ctx context.Context, linkID string, userID int64) (model.LinkItem, error) {
+	return m.getResult, m.getErr
+}
+
 func TestCreateShortLink(t *testing.T) {
 	type reqData struct {
 		method      string

@@ -90,6 +90,23 @@ func (s *LinkDataService) GetOriginalURL(ctx context.Context, id string) (model.
 	return linkItem, nil
 }
 
+func (s *LinkDataService) GetLink(ctx context.Context, linkID string, userID int64) (model.LinkItem, error) {
+	isOwner, err := s.repo.IsOwner(ctx, linkID, userID)
+	if err != nil {
+		return model.LinkItem{}, fmt.Errorf("failed to check ownership: %w", err)
+	}
+	if !isOwner {
+		return model.LinkItem{}, fmt.Errorf("access denied: user %d is not the owner of link %s", userID, linkID)
+	}
+
+	linkItem, err := s.repo.Get(ctx, linkID)
+	if err != nil {
+		return model.LinkItem{}, fmt.Errorf("failed to retrieve link: %w", err)
+	}
+	linkItem.ShortURL = s.buildShortLink(linkItem.ID)
+	return linkItem, nil
+}
+
 func (s *LinkDataService) generateUniqueID(ctx context.Context) (string, error) {
 	retries := 0
 	const maxRetries = 5

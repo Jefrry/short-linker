@@ -62,6 +62,47 @@
                 }
             }
         },
+        "/api/link/{id}": {
+            "get": {
+                "description": "Get detailed information about a specific short link",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "links"
+                ],
+                "summary": "Get link info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Short link ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Link information",
+                        "schema": {
+                            "$ref": "#/definitions/model.LinkItem"
+                        }
+                    },
+                    "404": {
+                        "description": "Link not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/shorten": {
             "post": {
                 "description": "Create a new short link from a long URL",
